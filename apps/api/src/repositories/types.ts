@@ -13,6 +13,7 @@ export interface CreateUserData {
   name: string;
   role: UserRole;
   organizationId: string;
+  password?: string | null;
 }
 
 export interface UpdateUserData {

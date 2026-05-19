@@ -19,12 +19,17 @@ export class UserPrismaRepository implements IUserRepository {
     });
   }
 
+  async findByEmail(email: string) {
+    return this.prisma.user.findFirst({ where: { email } });
+  }
+
   async create(data: CreateUserData) {
     return this.prisma.user.create({
       data: {
         email: data.email,
         name: data.name,
         role: data.role,
+        password: data.password ?? null,
         organization: { connect: { id: data.organizationId } },
       },
     });

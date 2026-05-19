@@ -25,11 +25,19 @@ export class FakeUserRepository implements IUserRepository {
     return null;
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    for (const user of this.records.values()) {
+      if (user.email === email) return user;
+    }
+    return null;
+  }
+
   async create(data: CreateUserData): Promise<User> {
     const user: User = {
       id: randomUUID(),
       email: data.email,
       name: data.name,
+      password: data.password ?? null,
       role: data.role,
       organizationId: data.organizationId,
       createdAt: new Date(),
