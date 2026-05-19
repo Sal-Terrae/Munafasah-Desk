@@ -8,6 +8,7 @@ import { TenderModule } from './tender/tender.module';
 import { DocumentVaultModule } from './document-vault/document-vault.module';
 import { FitScoringModule } from './fit-scoring/fit-scoring.module';
 import { ComplianceModule } from './compliance/compliance.module';
+import { ExportModule } from './export/export.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ComplianceModule } from './compliance/compliance.module';
     DocumentVaultModule,
     FitScoringModule,
     ComplianceModule,
+    ExportModule,
   ],
 })
 export class AppModule {}
