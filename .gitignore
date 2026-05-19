@@ -22,3 +22,7 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+
+# Agent/orchestration scratch (ForgeLoop + Aider)
+.forgeloop/
+.aider*
