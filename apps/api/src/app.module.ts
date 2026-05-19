@@ -6,6 +6,7 @@ import { AuditModule } from './audit/audit.module';
 import { ClientCompanyModule } from './client-company/client-company.module';
 import { TenderModule } from './tender/tender.module';
 import { DocumentVaultModule } from './document-vault/document-vault.module';
+import { FitScoringModule } from './fit-scoring/fit-scoring.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { DocumentVaultModule } from './document-vault/document-vault.module';
     ClientCompanyModule,
     TenderModule,
     DocumentVaultModule,
+    FitScoringModule,
   ],
 })
 export class AppModule {}
