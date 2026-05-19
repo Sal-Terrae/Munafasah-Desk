@@ -47,7 +47,7 @@ export interface UpdateTenderData {
 
 export interface CreateClientDocumentData {
   filename: string;
-  tenderId: string;
+  clientCompanyId: string;
   organizationId: string;
   documentType?: string;
   sensitivity?: string;
@@ -70,4 +70,65 @@ export interface CreateAuditEventData {
   userId: string;
   organizationId: string;
   details?: Prisma.JsonValue;
+}
+
+// ---------- P10 entities ----------
+
+export interface CreateComplianceMatrixData {
+  tenderId: string;
+  organizationId: string;
+  version: number;
+  status?: string;
+  generatedAt?: Date;
+}
+
+export interface UpdateComplianceMatrixData {
+  status?: string;
+}
+
+export interface CreateComplianceItemData {
+  matrixId: string;
+  organizationId: string;
+  requirementId: string;
+  requirementText: string;
+  category: string;
+  owner: string;
+  risk: string;
+  status: string;
+  dueDate?: Date | null;
+}
+
+export interface UpdateComplianceItemData {
+  owner?: string;
+  status?: string;
+  risk?: string;
+  dueDate?: Date | null;
+}
+
+export interface CreateTenderRequirementData {
+  tenderId: string;
+  organizationId: string;
+  category: string;
+  text: string;
+  risk?: string;
+  owner?: string | null;
+  source?: string;
+}
+
+export interface UpdateTenderRequirementData {
+  category?: string;
+  text?: string;
+  risk?: string;
+  owner?: string | null;
+}
+
+export interface CreateEvidenceLinkData {
+  organizationId: string;
+  complianceItemId: string;
+  documentId: string;
+  note?: string | null;
+}
+
+export interface UpdateEvidenceLinkData {
+  note?: string | null;
 }

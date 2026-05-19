@@ -38,7 +38,7 @@ export class FakeClientDocumentRepository
       sensitivity: data.sensitivity ?? 'low',
       state: data.state ?? 'active',
       expiresAt: data.expiresAt ?? null,
-      tenderId: data.tenderId,
+      clientCompanyId: data.clientCompanyId,
       organizationId: data.organizationId,
       createdAt: new Date(),
       updatedAt: new Date(),

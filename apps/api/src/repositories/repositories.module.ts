@@ -6,6 +6,10 @@ import { ClientCompanyPrismaRepository } from './prisma/client-company.prisma.re
 import { TenderPrismaRepository } from './prisma/tender.prisma.repository';
 import { ClientDocumentPrismaRepository } from './prisma/client-document.prisma.repository';
 import { AuditEventPrismaRepository } from './prisma/audit-event.prisma.repository';
+import { ComplianceMatrixPrismaRepository } from './prisma/compliance-matrix.prisma.repository';
+import { ComplianceItemPrismaRepository } from './prisma/compliance-item.prisma.repository';
+import { TenderRequirementPrismaRepository } from './prisma/tender-requirement.prisma.repository';
+import { EvidenceLinkPrismaRepository } from './prisma/evidence-link.prisma.repository';
 
 @Module({
   providers: [
@@ -16,6 +20,10 @@ import { AuditEventPrismaRepository } from './prisma/audit-event.prisma.reposito
     TenderPrismaRepository,
     ClientDocumentPrismaRepository,
     AuditEventPrismaRepository,
+    ComplianceMatrixPrismaRepository,
+    ComplianceItemPrismaRepository,
+    TenderRequirementPrismaRepository,
+    EvidenceLinkPrismaRepository,
   ],
   exports: [
     PrismaService,
@@ -25,6 +33,10 @@ import { AuditEventPrismaRepository } from './prisma/audit-event.prisma.reposito
     TenderPrismaRepository,
     ClientDocumentPrismaRepository,
     AuditEventPrismaRepository,
+    ComplianceMatrixPrismaRepository,
+    ComplianceItemPrismaRepository,
+    TenderRequirementPrismaRepository,
+    EvidenceLinkPrismaRepository,
   ],
 })
 export class RepositoriesModule {}

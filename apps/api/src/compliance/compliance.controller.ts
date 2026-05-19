@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
+  ParseIntPipe,
   Post,
   Req,
   UseGuards,
@@ -13,19 +15,20 @@ import {
   ComplianceRequirement,
   ComplianceService,
 } from './compliance.service';
+import { ComplianceMatrixService } from './compliance-matrix.service';
 
-interface MatrixBody {
+interface GenerateMatrixBody {
   requirements: ComplianceRequirement[];
   dueDate?: string | null;
-  previousVersion?: number;
   overriddenRequirementIds?: string[];
 }
 
 @UseGuards(JwtAuthGuard)
-@Controller('tenders/:id/compliance-matrix')
+@Controller('tenders/:id/compliance-matrices')
 export class ComplianceController {
   constructor(
-    private readonly compliance: ComplianceService,
+    private readonly compute: ComplianceService,
+    private readonly matrices: ComplianceMatrixService,
     private readonly tenders: TenderService,
     private readonly vault: DocumentVaultService,
   ) {}
@@ -34,36 +37,75 @@ export class ComplianceController {
     return req.user!.organizationId;
   }
 
+  // Existing endpoint, NOW PERSISTING. Response shape preserved (matrix
+  // + derived tasks + export gate) so the frontend contract is unchanged
+  // while a new versioned row is durably stored.
   @Post()
   async generate(
-    @Param('id') id: string,
-    @Body() body: MatrixBody,
+    @Param('id') tenderId: string,
+    @Body() body: GenerateMatrixBody,
     @Req() req: { user?: { organizationId: string } },
   ) {
     const org = this.orgId(req);
-    await this.tenders.get(id, org); // tenant guard
     const docs = await this.vault.list(org);
-    const matrix = this.compliance.generateMatrix(
-      id,
+    const vault = docs.map((d) => ({
+      id: d.id,
+      documentType: d.documentType,
+      state: d.state,
+      expiresAt: d.expiresAt,
+    }));
+    const { matrix, items } = await this.matrices.generateAndPersist(
+      tenderId,
+      org,
       body.requirements ?? [],
-      docs.map((d) => ({
-        id: d.id,
-        documentType: d.documentType,
-        state: d.state,
-        expiresAt: d.expiresAt,
-      })),
-      {
-        dueDate: body.dueDate ?? null,
-        previousVersion: body.previousVersion,
-      },
+      vault,
+      { dueDate: body.dueDate ?? null },
     );
+
+    // Derived views — kept in the response so the frontend keeps working.
+    const computedShape = {
+      tenderId,
+      version: matrix.version,
+      generatedAt: matrix.generatedAt.toISOString(),
+      items: items.map((i) => ({
+        requirementId: i.requirementId,
+        requirementText: i.requirementText,
+        category: i.category,
+        owner: i.owner,
+        risk: i.risk as 'low' | 'medium' | 'high' | 'critical',
+        status: i.status as
+          | 'missing'
+          | 'partial'
+          | 'satisfied'
+          | 'overridden',
+        evidenceDocId: null,
+        dueDate: i.dueDate ? i.dueDate.toISOString().slice(0, 10) : null,
+      })),
+    };
     return {
-      matrix,
-      tasks: this.compliance.deriveTasks(matrix),
-      exportGate: this.compliance.exportGate(
-        matrix,
+      matrix: { id: matrix.id, ...computedShape },
+      tasks: this.compute.deriveTasks(computedShape),
+      exportGate: this.compute.exportGate(
+        computedShape,
         body.overriddenRequirementIds ?? [],
       ),
     };
+  }
+
+  @Get()
+  async list(
+    @Param('id') tenderId: string,
+    @Req() req: { user?: { organizationId: string } },
+  ) {
+    return this.matrices.listForTender(tenderId, this.orgId(req));
+  }
+
+  @Get(':version')
+  async getByVersion(
+    @Param('id') tenderId: string,
+    @Param('version', ParseIntPipe) version: number,
+    @Req() req: { user?: { organizationId: string } },
+  ) {
+    return this.matrices.getByVersion(tenderId, version, this.orgId(req));
   }
 }

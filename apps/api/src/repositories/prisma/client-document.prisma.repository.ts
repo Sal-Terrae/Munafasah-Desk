@@ -32,7 +32,7 @@ export class ClientDocumentPrismaRepository
         sensitivity: data.sensitivity ?? 'low',
         state: data.state ?? 'active',
         expiresAt: data.expiresAt ?? null,
-        tender: { connect: { id: data.tenderId } },
+        clientCompany: { connect: { id: data.clientCompanyId } },
         organization: { connect: { id: data.organizationId } },
       },
     });

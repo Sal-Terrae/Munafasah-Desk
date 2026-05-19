@@ -20,15 +20,21 @@ enum UserRole {
 }
 
 model Organization {
-  id             String         @id @default(uuid())
-  name           String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  users          User[]
-  clientCompanies ClientCompany[]
-  tenders        Tender[]
-  auditEvents    AuditEvent[]
-  clientDocuments ClientDocument[]
+  id                 String              @id @default(uuid())
+  name               String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  users              User[]
+  clientCompanies    ClientCompany[]
+  tenders            Tender[]
+  auditEvents        AuditEvent[]
+  clientDocuments    ClientDocument[]
+  complianceMatrices ComplianceMatrix[]
+  complianceItems    ComplianceItem[]
+  tenderRequirements TenderRequirement[]
+  evidenceLinks      EvidenceLink[]
+  tasks              Task[]
+  submissionPacks    SubmissionPack[]
 }
 
 model User {
@@ -45,42 +51,53 @@ model User {
 }
 
 model ClientCompany {
-  id             String       @id @default(uuid())
+  id             String           @id @default(uuid())
   name           String
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   tenders        Tender[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  documents      ClientDocument[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }
 
 model Tender {
-  id              String         @id @default(uuid())
+  id              String              @id @default(uuid())
   title           String
   organizationId  String
-  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   clientCompanyId String
-  clientCompany   ClientCompany  @relation(fields: [clientCompanyId], references: [id], onDelete: Cascade)
-  source          String         @default("manual")
-  status          String         @default("intake")
-  documents       ClientDocument[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  clientCompany   ClientCompany       @relation(fields: [clientCompanyId], references: [id], onDelete: Cascade)
+  source          String              @default("manual")
+  status          String              @default("intake")
+  matrices        ComplianceMatrix[]
+  requirements    TenderRequirement[]
+  tasks           Task[]
+  submissionPacks SubmissionPack[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 }
 
+// Re-parented to ClientCompany (PRD ERD §3 fix). Documents are reusable
+// across multiple tenders for the same client; per-tender binding lives
+// in EvidenceLink against ComplianceItem.
 model ClientDocument {
-  id             String   @id @default(uuid())
-  filename       String
-  tenderId       String
-  tender         Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  documentType   String   @default("other")
-  sensitivity    String   @default("low")
-  state          String   @default("active")
-  expiresAt      DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String         @id @default(uuid())
+  filename        String
+  clientCompanyId String
+  clientCompany   ClientCompany  @relation(fields: [clientCompanyId], references: [id], onDelete: Cascade)
+  organizationId  String
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documentType    String         @default("other")
+  sensitivity     String         @default("low")
+  state           String         @default("active")
+  expiresAt       DateTime?
+  evidenceLinks   EvidenceLink[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([organizationId])
+  @@index([clientCompanyId])
 }
 
 model AuditEvent {
@@ -94,4 +111,125 @@ model AuditEvent {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   timestamp      DateTime     @default(now())
   details        Json?
+}
+
+// Versioned compliance matrix per tender. (tenderId, version) is unique.
+// Items are children; an Item ties to one or more ClientDocuments via EvidenceLink.
+model ComplianceMatrix {
+  id             String           @id @default(uuid())
+  tenderId       String
+  tender         Tender           @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  version        Int
+  status         String           @default("draft")
+  generatedAt    DateTime         @default(now())
+  items          ComplianceItem[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([tenderId, version])
+  @@index([organizationId])
+  @@index([tenderId])
+}
+
+model ComplianceItem {
+  id              String           @id @default(uuid())
+  matrixId        String
+  matrix          ComplianceMatrix @relation(fields: [matrixId], references: [id], onDelete: Cascade)
+  organizationId  String
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requirementId   String
+  requirementText String
+  category        String
+  owner           String
+  risk            String
+  status          String
+  dueDate         DateTime?
+  evidenceLinks   EvidenceLink[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([organizationId])
+  @@index([matrixId])
+}
+
+model TenderRequirement {
+  id             String       @id @default(uuid())
+  tenderId       String
+  tender         Tender       @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category       String
+  text           String
+  risk           String       @default("medium")
+  owner          String?
+  source         String       @default("manual")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([tenderId])
+}
+
+// Many-to-many between ComplianceItem and ClientDocument. Allows the
+// same document to be reused as evidence across many tenders' items.
+model EvidenceLink {
+  id               String         @id @default(uuid())
+  organizationId   String
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  complianceItemId String
+  complianceItem   ComplianceItem @relation(fields: [complianceItemId], references: [id], onDelete: Cascade)
+  documentId       String
+  document         ClientDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  note             String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([complianceItemId, documentId])
+  @@index([organizationId])
+  @@index([documentId])
+}
+
+// Persisted remediation tasks derived from compliance items (or created
+// manually). Service wiring is P10.1; the model is added now so the
+// schema is consistent with the PRD.
+model Task {
+  id              String       @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tenderId        String
+  tender          Tender       @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  owner           String?
+  status          String       @default("open")
+  priority        String       @default("medium")
+  dueDate         DateTime?
+  derivedFromItem String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([tenderId])
+}
+
+// Persisted submission pack handle (manifest hash + version + audit).
+// Service wiring is P10.1.
+model SubmissionPack {
+  id              String       @id @default(uuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tenderId        String
+  tender          Tender       @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  version         Int
+  status          String       @default("draft")
+  manifestSha256  String
+  itemCount       Int
+  overrideAudit   Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([tenderId, version])
+  @@index([organizationId])
 }

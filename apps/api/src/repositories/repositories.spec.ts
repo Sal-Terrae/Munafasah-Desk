@@ -210,32 +210,25 @@ describe('Tender repository tenant scoping', () => {
 
 describe('ClientDocument repository tenant scoping', () => {
   let docRepo: FakeClientDocumentRepository;
-  let tenderRepo: FakeTenderRepository;
   let clientCompRepo: FakeClientCompanyRepository;
   let orgRepo: FakeOrganizationRepository;
   let orgA: any;
   let orgB: any;
-  let tenderA: any;
+  let comp: any;
 
   beforeEach(async () => {
     docRepo = new FakeClientDocumentRepository();
-    tenderRepo = new FakeTenderRepository();
     clientCompRepo = new FakeClientCompanyRepository();
     orgRepo = new FakeOrganizationRepository();
     orgA = await orgRepo.create({ name: 'A' });
     orgB = await orgRepo.create({ name: 'B' });
-    const comp = await clientCompRepo.create({ name: 'C', organizationId: orgA.id });
-    tenderA = await tenderRepo.create({
-      title: 'T',
-      organizationId: orgA.id,
-      clientCompanyId: comp.id,
-    });
+    comp = await clientCompRepo.create({ name: 'C', organizationId: orgA.id });
   });
 
   it('cannot retrieve a document from a different tenant', async () => {
     const doc = await docRepo.create({
       filename: 'd.pdf',
-      tenderId: tenderA.id,
+      clientCompanyId: comp.id,
       organizationId: orgA.id,
     });
     const notFound = await docRepo.findById(doc.id, orgB.id);
@@ -245,7 +238,7 @@ describe('ClientDocument repository tenant scoping', () => {
   it('cross‑tenant delete returns false', async () => {
     const doc = await docRepo.create({
       filename: 'e.pdf',
-      tenderId: tenderA.id,
+      clientCompanyId: comp.id,
       organizationId: orgA.id,
     });
     const deleted = await docRepo.delete(doc.id, orgB.id);

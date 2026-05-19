@@ -5,7 +5,9 @@ import { IClientDocumentRepository } from '../repositories/interfaces/client-doc
 
 export interface RegisterDocumentInput {
   filename: string;
-  tenderId: string;
+  // P10: documents now belong to a ClientCompany and are reusable
+  // across tenders via EvidenceLink (PRD ERD §3).
+  clientCompanyId: string;
   documentType?: string;
   sensitivity?: string;
   expiresAt?: Date | null;
@@ -24,7 +26,7 @@ export class DocumentVaultService {
   ): Promise<ClientDocument> {
     return this.repo.create({
       filename: input.filename,
-      tenderId: input.tenderId,
+      clientCompanyId: input.clientCompanyId,
       organizationId,
       documentType: input.documentType ?? 'other',
       sensitivity: input.sensitivity ?? 'low',

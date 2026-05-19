@@ -14,7 +14,7 @@ describe('DocumentVaultService', () => {
     const d = await svc.register(
       {
         filename: 'cr.pdf',
-        tenderId: 't-1',
+        clientCompanyId: 'cc-1',
         documentType: 'legal',
         sensitivity: 'high',
       },
@@ -28,7 +28,7 @@ describe('DocumentVaultService', () => {
 
   it('denies cross-tenant get', async () => {
     const d = await svc.register(
-      { filename: 'a.pdf', tenderId: 't-1' },
+      { filename: 'a.pdf', clientCompanyId: 'cc-1' },
       'org-1',
     );
     await expect(svc.get(d.id, 'org-2')).rejects.toThrow();
@@ -36,7 +36,7 @@ describe('DocumentVaultService', () => {
 
   it('transitions state within the organization', async () => {
     const d = await svc.register(
-      { filename: 'a.pdf', tenderId: 't-1' },
+      { filename: 'a.pdf', clientCompanyId: 'cc-1' },
       'org-1',
     );
     await svc.setState(d.id, 'org-1', 'archived');
@@ -47,15 +47,15 @@ describe('DocumentVaultService', () => {
     const past = new Date('2025-01-01');
     const future = new Date('2999-01-01');
     await svc.register(
-      { filename: 'soon.pdf', tenderId: 't-1', expiresAt: past },
+      { filename: 'soon.pdf', clientCompanyId: 'cc-1', expiresAt: past },
       'org-1',
     );
     await svc.register(
-      { filename: 'later.pdf', tenderId: 't-1', expiresAt: future },
+      { filename: 'later.pdf', clientCompanyId: 'cc-1', expiresAt: future },
       'org-1',
     );
     const archived = await svc.register(
-      { filename: 'old.pdf', tenderId: 't-1', expiresAt: past },
+      { filename: 'old.pdf', clientCompanyId: 'cc-1', expiresAt: past },
       'org-1',
     );
     await svc.setState(archived.id, 'org-1', 'archived');

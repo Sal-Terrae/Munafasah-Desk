@@ -285,3 +285,108 @@ was blocking real testing. All gates green; no regressions.
   in P11 (covered by §8 P11 row).
 - **README refresh** — text correction; not a security blocker, will fold
   into P12 docs polish.
+
+## 11. P10 result — Persistence + Integration Tests (2026‑05‑19)
+
+P10 closes the entirety of audit §7 item #1 ("persist the missing
+domain entities + fix `ClientDocument` parenting") and the integration
+row of §2, and unblocks the testing-strategy doc's integration lane.
+All gates green; no regressions.
+
+### Closed by P10
+- **Schema (additive) gained the 6 missing PRD entities:**
+  `ComplianceMatrix` (+ `@@unique([tenderId, version])`),
+  `ComplianceItem` (cascade from matrix), `TenderRequirement`,
+  `EvidenceLink` (+ `@@unique([complianceItemId, documentId])`),
+  `Task`, `SubmissionPack` (+ `@@unique([tenderId, version])`).
+  All scoped by `organizationId`; cascade boundaries explicit.
+- **`ClientDocument` re-parented from Tender → ClientCompany** — the
+  PRD ERD §3 deviation is fixed. Documents are now reusable across many
+  tenders via `EvidenceLink`; deleting a tender no longer deletes the
+  client's documents. Audit §9 ERD deviation row resolved.
+- **`onDelete: Cascade` correctness:** the wrong Tender→ClientDocument
+  cascade is gone (the FK itself no longer exists). Tender delete
+  cascades correctly through `ComplianceMatrix → ComplianceItem →
+  EvidenceLink`, `TenderRequirement`, `Task`, `SubmissionPack` — and
+  notably **does not** delete `ClientDocument`.
+- **Real versioned compliance-matrix persistence:** `ComplianceMatrixService`
+  wraps the pure `ComplianceService` compute and writes the matrix + its
+  items atomically (`createMany` in a Prisma `$transaction`). Version
+  number is computed server-side from `latestForTender` — caller-supplied
+  `previousVersion` no longer trusted (audit §3 "version is name-only
+  counter" closed).
+- **New endpoints:**
+  - `POST   /tenders/:id/compliance-matrices` — now persisting; response
+    shape preserved for FE compatibility (matrix + tasks + exportGate).
+  - `GET    /tenders/:id/compliance-matrices` — list versions desc.
+  - `GET    /tenders/:id/compliance-matrices/:version` — version + items.
+  - `PATCH  /compliance-items/:id` — owner/status/risk/dueDate (class-validator).
+  - `GET    /compliance-items/:id/evidence-links`
+  - `POST   /compliance-items/:id/evidence-links` — tenant-scoped link.
+  - `DELETE /compliance-items/:id/evidence-links/:documentId` — idempotent.
+- **DocumentVault accepts `clientCompanyId`** (was `tenderId`); service
+  + controller + fake + Prisma + all unit tests updated. Audit §3
+  "structural reuse impossible" row closed.
+- **Repositories (interface + fake + prisma)** for the new entities,
+  wired into `RepositoriesModule`. Tenant guard on every `findById` /
+  `findByVersion` / `findAll*` / `update` / `delete`.
+- **Integration test infrastructure:** `@testcontainers/postgresql` +
+  `apps/api/test/integration-helpers.ts` (spins ephemeral Postgres,
+  runs `prisma db push`, truncates between tests). Jest split into two
+  lanes: unit (`.spec.ts`, excludes `.it.spec.ts`) and integration
+  (`.it.spec.ts`, `maxWorkers: 1`, 60 s timeout). Local runs without
+  Docker pass cleanly — every integration suite is wrapped in
+  `dockerAvailable() ? describe : describe.skip`.
+- **CI `api-integration` job** added to `.github/workflows/ci.yml` — runs
+  the integration lane on `ubuntu-latest` where testcontainers can use
+  the host's Docker daemon.
+
+### Tests added at P10 (all green; integration suite skips without Docker)
+- API jest **102/102** (was 91 at P9). 11 new unit tests across:
+  - `compliance-matrix.service.spec.ts` — first/subsequent version,
+    cross-tenant denial, getByVersion not-found, updateItem tenant guard,
+    listForTender ordering.
+  - `evidence-link.service.spec.ts` — link/unlink, cross-tenant denial
+    on item and on document, double-link refused, unlink idempotency.
+- API jest integration **4 suites / 14 cases** (skip-clean locally; full
+  green expected in CI). New suites:
+  - `client-document.prisma.it.spec.ts` — ClientCompany parenting, tenant
+    scoping on findById, "doc survives tender delete" (PRD reuse goal),
+    listExpiring filter, tenant-guarded delete.
+  - `compliance-matrix.prisma.it.spec.ts` — `@@unique([tenderId, version])`
+    enforcement, `latestForTender` correctness, `createMany` atomicity,
+    cross-tenant findById/update denial.
+  - `evidence-link.prisma.it.spec.ts` — `@@unique([complianceItemId,
+    documentId])` enforcement, cascade on document delete, cascade on
+    item delete, idempotent unlink.
+  - `tender-cascade.prisma.it.spec.ts` — single suite proving the full
+    cascade: matrix/items/requirements/tasks/submissionPacks/evidenceLinks
+    all removed when their parent tender is deleted; ClientDocument
+    survives (reusability guarantee).
+
+### Gate evidence
+- API tsc clean · `jest 102/102 in 6.5s` (unit) · `jest 14 skipped in 5.5s`
+  (integration, no Docker locally)
+- Web tsc clean · `vitest 18/18 in 1.4s` · `next build` clean
+- Python `ruff check` clean · `pytest 22/22`
+
+### Knowingly deferred to P10.1 / later
+- **`Task` and `SubmissionPack` service persistence** — schema is added
+  and migrations would cover them; services still in-memory until the
+  PRD task-lifecycle and submission-pack flows are scoped.
+- **Interface-token DI refactor** (`@Inject(USER_REPOSITORY)` symbol) —
+  services still inject concrete Prisma classes by class token. Audit
+  §7 item #3 remains open.
+- **`as any` Prisma return casts** in `update(...)` methods — present
+  on every Prisma repo (incl. the 4 new ones added at P10). Audit §7
+  item #5 remains open; will be replaced with explicit narrowing in
+  P10.1.
+- **`AuditService` coverage of matrix/item/link mutations** — folds with
+  the P11 `AuditInterceptor`.
+- **Real `TenderRequirement`-backed compliance generation** — current
+  controller still accepts requirements in the request body; the
+  persistent `TenderRequirement` rows aren't consumed yet (they exist
+  so future POST/PATCH flows can write through to them).
+- **Initial Prisma migration file** — schema is materialized via
+  `prisma db push` in tests (and would be locally); first proper
+  migration baseline lands with P12 (Cloud Run deploy).
