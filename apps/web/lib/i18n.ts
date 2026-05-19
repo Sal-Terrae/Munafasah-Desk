@@ -24,6 +24,20 @@ export const strings = {
   owner: { ar: 'المسؤول', en: 'Owner' },
   due: { ar: 'الاستحقاق', en: 'Due' },
   risk: { ar: 'المخاطر', en: 'Risk' },
+  signIn: { ar: 'تسجيل الدخول', en: 'Sign in' },
+  signingIn: { ar: 'جاري الدخول...', en: 'Signing in…' },
+  signOut: { ar: 'تسجيل الخروج', en: 'Sign out' },
+  signInPrompt: {
+    ar: 'الرجاء تسجيل الدخول للوصول إلى مساحة العمل',
+    en: 'Sign in to access your workspace',
+  },
+  email: { ar: 'البريد الإلكتروني', en: 'Email' },
+  password: { ar: 'كلمة المرور', en: 'Password' },
+  emptyTenders: { ar: 'لا توجد عطاءات بعد', en: 'No tenders yet' },
+  loadFailed: {
+    ar: 'تعذّر تحميل البيانات. أعد المحاولة لاحقاً.',
+    en: 'Could not load data. Try again later.',
+  },
 } satisfies Record<string, Pair>;
 
 export type StringKey = keyof typeof strings;

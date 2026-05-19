@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
 import { RepositoriesModule } from './repositories/repositories.module';
 import { AuthModule } from './auth/auth.module';
@@ -13,6 +15,13 @@ import { PdplModule } from './pdpl/pdpl.module';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 100,
+      },
+    ]),
     HealthModule,
     RepositoriesModule,
     AuthModule,
@@ -24,6 +33,12 @@ import { PdplModule } from './pdpl/pdpl.module';
     ComplianceModule,
     ExportModule,
     PdplModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

@@ -16,5 +16,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev:api": "npm run dev --workspace apps/api",
     "dev:web": "npm run dev --workspace apps/web"
+  },
+  "overrides": {
+    "multer": ">=2.1.1"
   }
 }

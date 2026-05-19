@@ -203,3 +203,85 @@ Roughly **10–15% of the PRD UI surface** is realized.
 - Fixture‑only UI: `apps/web/lib/fixtures.ts`, `apps/web/app/{page,tenders/[id]/page}.tsx`
 - No login UI: absent `apps/web/app/login/` or `apps/web/lib/auth.ts`
 - Stale README: `README.md:8` claims "Phase 0" while Phases 1–8 are merged
+
+## 10. P9 result — Security Hardening + Auth UI (2026‑05‑19)
+
+P9 closed every audit item under §5 (Security posture) and §6 (UI/UX) that
+was blocking real testing. All gates green; no regressions.
+
+### Closed by P9
+- **Dependency CVEs:** Trivy fs HIGH/CRITICAL = **0** (was 8). `multer`
+  pinned to **2.1.1** via root `package.json` `overrides` (transitive via
+  `@nestjs/platform-express`); `next` bumped to **15.5.18** (React **19.2**).
+- **JWT dev‑secret fallback removed.** `requireJwtSecret()` enforces
+  presence + ≥32 chars at module init in both `auth.module.ts` and
+  `jwt.strategy.ts`. Tests assert the legacy fallback string is no longer
+  present in either source file. `JwtModule.registerAsync` makes the
+  failure deterministic — boot aborts, not a quiet downgrade.
+- **A03 / A05 — Injection + Security Misconfiguration:** `main.ts` now
+  registers `helmet()`, `enableCors({ credentials: true, origin: split CORS_ORIGIN })`,
+  `cookieParser()`, `ValidationPipe({ whitelist, forbidNonWhitelisted, transform })`,
+  `AllExceptionsFilter` (structured logger + no stack/secret leak),
+  `enableShutdownHooks()`. `LoginDto` (`@IsEmail`, `@MinLength(8)`,
+  `@MaxLength(256)`) replaces the freeform interface.
+- **A07 — Brute force on `/auth/login`:** `@nestjs/throttler` registered
+  globally (100 req/min default); `/auth/login` throttled to 5/min.
+- **Token storage XSS surface:** session moved from "no UI" to **HttpOnly
+  + SameSite=Lax + Secure-in-prod cookie** (`bidready_session`).
+  `JwtStrategy` accepts the cookie OR `Authorization: Bearer` (back‑compat).
+  No token ever lives in `localStorage` or JS-reachable storage.
+- **Login UI exists.** `apps/web/app/login/` (server page + client
+  `<LoginForm>`), `apps/web/lib/auth-context.tsx` (Provider + `useAuth`),
+  `apps/web/lib/api.ts` `apiFetch` works in browser (`credentials: include`)
+  and Server Components (forwards the cookie via `next/headers`).
+- **Route protection.** `apps/web/middleware.ts` redirects unauthenticated
+  requests to `/login?redirect=<path>`; `/login` itself is exempt.
+- **Real fetch wiring.** `app/page.tsx` fetches `/tenders` + `/documents/expiring`
+  via `apiFetch`; `app/tenders/[id]/page.tsx` fetches `/tenders/:id`
+  (also adapted to Next 15 async `params`). The dashboard's
+  critical‑tasks rail still falls back to the fixture until P10 persists
+  the compliance matrix.
+- **A09 — Logging never invoked from request flow:** `AllExceptionsFilter`
+  now drives `logEvent(...)` on every request error path.
+- **`/auth/me` + `/auth/logout`** added — server-trusted current-user
+  hydration and explicit cookie clearance.
+- **CI security lane added** in `.github/workflows/ci.yml`: Gitleaks,
+  Trivy fs (HIGH/CRITICAL, `exit-code: 1`), Semgrep
+  (`p/owasp-top-ten + p/javascript + p/typescript + p/nodejs + p/secrets`).
+
+### Tests added at P9 (all green)
+- API jest **91/91** (was 71). New suites: `all-exceptions.filter.spec.ts`,
+  `jwt-secret.spec.ts`, `login.dto.spec.ts`, `auth.controller.spec.ts`
+  (cookie shape + login/logout/me), `auth.module.spec.ts` (legacy fallback
+  text absence + secret-too-weak guard).
+- Web vitest **18/18** (new). Suites: `lib/api.test.ts` (apiFetch happy
+  path / 401 / 204 / loadCurrentUser fallthrough), `lib/auth-context.test.tsx`
+  (login success/401/logout best-effort/no-provider guard),
+  `app/login-form.test.tsx` (submit, redirect param, error path),
+  `middleware.test.ts` (login passthrough, session present/absent,
+  redirect query parameter shape).
+
+### Gate evidence
+- API tsc clean · `jest 91/91 in 6.1s`
+- Web tsc clean · `vitest 18/18 in 1.3s` · `next build` clean
+  (`/`, `/login`, `/tenders/[id]` all dynamic; middleware 34.2 kB)
+- Python `ruff check` clean · `pytest 22/22`
+- `gitleaks` no leaks · `trivy fs --severity HIGH,CRITICAL --ignore-unfixed`
+  reports **0** findings (was 8)
+
+### Knowingly deferred to later phases
+- **HTTP-only cookie with `SameSite=Strict`** — currently `Lax`; dev runs
+  cross-origin (`:3000` ↔ `:8080`), Strict would block. Once Next and Nest
+  ship behind the same reverse proxy in P12, flip to Strict.
+- **CSRF token (defence in depth)** — not added; CORS preflight already
+  blocks JSON CSRF for cross-origin attackers, and SameSite=Lax covers
+  navigation. Revisit if/when we add cross-origin third-party integrations.
+- **Refresh-token rotation** — single 1h JWT for now; rotation lands with
+  the persistence-backed audit interceptor in P11.
+- **`/auth/me` rate-limit hardening / per-IP login lockout** — global +
+  per-endpoint throttler in place; per-account lockout deferred to P11
+  with the audit interceptor.
+- **`AuditService` coverage of login/logout/sensitive reads** — wired
+  in P11 (covered by §8 P11 row).
+- **README refresh** — text correction; not a security blocker, will fold
+  into P12 docs polish.

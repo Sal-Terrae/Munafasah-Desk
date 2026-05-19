@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { type Locale, t } from '../lib/i18n';
 import type { Tender } from '../lib/api';
 
