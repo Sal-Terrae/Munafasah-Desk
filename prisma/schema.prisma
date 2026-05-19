@@ -28,6 +28,7 @@ model Organization {
   clientCompanies ClientCompany[]
   tenders        Tender[]
   auditEvents    AuditEvent[]
+  clientDocuments ClientDocument[]
 }
 
 model User {
@@ -37,6 +38,7 @@ model User {
   role           UserRole
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  auditEvents    AuditEvent[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }
@@ -64,12 +66,14 @@ model Tender {
 }
 
 model ClientDocument {
-  id        String   @id @default(uuid())
-  filename  String
-  tenderId  String
-  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid())
+  filename       String
+  tenderId       String
+  tender         Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model AuditEvent {
