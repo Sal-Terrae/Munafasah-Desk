@@ -9,6 +9,7 @@ import { DocumentVaultModule } from './document-vault/document-vault.module';
 import { FitScoringModule } from './fit-scoring/fit-scoring.module';
 import { ComplianceModule } from './compliance/compliance.module';
 import { ExportModule } from './export/export.module';
+import { PdplModule } from './pdpl/pdpl.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ExportModule } from './export/export.module';
     FitScoringModule,
     ComplianceModule,
     ExportModule,
+    PdplModule,
   ],
 })
 export class AppModule {}
