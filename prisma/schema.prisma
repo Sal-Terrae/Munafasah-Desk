@@ -61,6 +61,8 @@ model Tender {
   organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   clientCompanyId String
   clientCompany   ClientCompany  @relation(fields: [clientCompanyId], references: [id], onDelete: Cascade)
+  source          String         @default("manual")
+  status          String         @default("intake")
   documents       ClientDocument[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -73,6 +75,10 @@ model ClientDocument {
   tender         Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documentType   String   @default("other")
+  sensitivity    String   @default("low")
+  state          String   @default("active")
+  expiresAt      DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

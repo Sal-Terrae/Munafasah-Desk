@@ -29,6 +29,8 @@ export class FakeTenderRepository implements ITenderRepository {
     const tender: Tender = {
       id: randomUUID(),
       title: data.title,
+      source: data.source ?? 'manual',
+      status: data.status ?? 'intake',
       organizationId: data.organizationId,
       clientCompanyId: data.clientCompanyId,
       createdAt: new Date(),
@@ -49,6 +51,12 @@ export class FakeTenderRepository implements ITenderRepository {
     }
     if (data.title !== undefined) {
       tender.title = data.title;
+    }
+    if (data.status !== undefined) {
+      tender.status = data.status;
+    }
+    if (data.source !== undefined) {
+      tender.source = data.source;
     }
     tender.updatedAt = new Date();
     return tender;

@@ -35,20 +35,32 @@ export interface CreateTenderData {
   title: string;
   organizationId: string;
   clientCompanyId: string;
+  source?: string;
+  status?: string;
 }
 
 export interface UpdateTenderData {
   title?: string;
+  status?: string;
+  source?: string;
 }
 
 export interface CreateClientDocumentData {
   filename: string;
   tenderId: string;
   organizationId: string;
+  documentType?: string;
+  sensitivity?: string;
+  state?: string;
+  expiresAt?: Date | null;
 }
 
 export interface UpdateClientDocumentData {
   filename?: string;
+  documentType?: string;
+  sensitivity?: string;
+  state?: string;
+  expiresAt?: Date | null;
 }
 
 export interface CreateAuditEventData {

@@ -34,6 +34,10 @@ export class FakeClientDocumentRepository
     const doc: ClientDocument = {
       id: randomUUID(),
       filename: data.filename,
+      documentType: data.documentType ?? 'other',
+      sensitivity: data.sensitivity ?? 'low',
+      state: data.state ?? 'active',
+      expiresAt: data.expiresAt ?? null,
       tenderId: data.tenderId,
       organizationId: data.organizationId,
       createdAt: new Date(),
@@ -54,6 +58,18 @@ export class FakeClientDocumentRepository
     }
     if (data.filename !== undefined) {
       doc.filename = data.filename;
+    }
+    if (data.documentType !== undefined) {
+      doc.documentType = data.documentType;
+    }
+    if (data.sensitivity !== undefined) {
+      doc.sensitivity = data.sensitivity;
+    }
+    if (data.state !== undefined) {
+      doc.state = data.state;
+    }
+    if (data.expiresAt !== undefined) {
+      doc.expiresAt = data.expiresAt;
     }
     doc.updatedAt = new Date();
     return doc;

@@ -28,6 +28,10 @@ export class ClientDocumentPrismaRepository
     return this.prisma.clientDocument.create({
       data: {
         filename: data.filename,
+        documentType: data.documentType ?? 'other',
+        sensitivity: data.sensitivity ?? 'low',
+        state: data.state ?? 'active',
+        expiresAt: data.expiresAt ?? null,
         tender: { connect: { id: data.tenderId } },
         organization: { connect: { id: data.organizationId } },
       },

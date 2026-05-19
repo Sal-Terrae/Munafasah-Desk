@@ -23,6 +23,8 @@ export class TenderPrismaRepository implements ITenderRepository {
     return this.prisma.tender.create({
       data: {
         title: data.title,
+        source: data.source ?? 'manual',
+        status: data.status ?? 'intake',
         organization: { connect: { id: data.organizationId } },
         clientCompany: { connect: { id: data.clientCompanyId } },
       },
