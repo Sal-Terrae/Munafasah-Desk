@@ -7,6 +7,7 @@ import { ClientCompanyModule } from './client-company/client-company.module';
 import { TenderModule } from './tender/tender.module';
 import { DocumentVaultModule } from './document-vault/document-vault.module';
 import { FitScoringModule } from './fit-scoring/fit-scoring.module';
+import { ComplianceModule } from './compliance/compliance.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { FitScoringModule } from './fit-scoring/fit-scoring.module';
     TenderModule,
     DocumentVaultModule,
     FitScoringModule,
+    ComplianceModule,
   ],
 })
 export class AppModule {}
