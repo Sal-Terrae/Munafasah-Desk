@@ -43,10 +43,22 @@ export class ResidencyViolation extends ForbiddenException {}
  */
 @Injectable()
 export class ResidencyGate {
-  config: ResidencyConfig;
+  private _config: ResidencyConfig | null = null;
 
-  constructor(env: NodeJS.ProcessEnv = process.env) {
-    this.config = readResidencyMode(env);
+  /**
+   * Test seam — pass an explicit env to override `process.env`.
+   * Production code uses the no-arg constructor so Nest's DI doesn't
+   * try to inject `process.env` as a class.
+   */
+  loadFrom(env: NodeJS.ProcessEnv): void {
+    this._config = readResidencyMode(env);
+  }
+
+  get config(): ResidencyConfig {
+    if (!this._config) {
+      this._config = readResidencyMode(process.env);
+    }
+    return this._config;
   }
 
   /** Returns the configured mode (`'ksa'` by default). */

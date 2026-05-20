@@ -145,3 +145,210 @@ export async function loadCurrentUser(): Promise<PublicUser | null> {
     throw err;
   }
 }
+
+// ---------- Admin types ----------
+
+export interface DpoContact {
+  id: string;
+  organizationId: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  authorityEmail: string;
+  retentionPolicyDays: number;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertDpoContactInput {
+  name: string;
+  email: string;
+  phone?: string | null;
+  authorityEmail: string;
+  retentionPolicyDays?: number;
+}
+
+export type DataSubjectRequestType = 'access' | 'erasure' | 'rectification';
+export type DataSubjectRequestStatus =
+  | 'pending'
+  | 'approved'
+  | 'denied'
+  | 'completed';
+
+export interface DataSubjectRequest {
+  id: string;
+  organizationId: string;
+  type: DataSubjectRequestType;
+  subjectEmail: string;
+  status: DataSubjectRequestStatus;
+  requestedBy: string | null;
+  requestedAt: string;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  completedAt: string | null;
+  notes: string | null;
+  payload: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RetentionActionStatus =
+  | 'pending'
+  | 'approved'
+  | 'denied'
+  | 'executed';
+export type RetentionActionType = 'destroy' | 'archive';
+
+export interface RetentionAction {
+  id: string;
+  organizationId: string;
+  documentId: string;
+  action: RetentionActionType;
+  reason: string;
+  requestedBy: string;
+  requestedAt: string;
+  status: RetentionActionStatus;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  executedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConsentEvent {
+  id: string;
+  organizationId: string;
+  subjectEmail: string;
+  subjectUserId: string | null;
+  purpose: string;
+  state: 'granted' | 'withdrawn';
+  source: string;
+  recordedBy: string | null;
+  recordedAt: string;
+}
+
+export type IngestionKind = 'etimad' | 'upload' | 'email' | 'link';
+export type IngestionStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed';
+
+export interface IngestionJob {
+  id: string;
+  organizationId: string;
+  kind: IngestionKind;
+  status: IngestionStatus;
+  payload: unknown;
+  result: unknown;
+  errorMessage: string | null;
+  attempts: number;
+  claimedBy: string | null;
+  claimedAt: string | null;
+  completedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------- Admin fetchers ----------
+
+export const adminApi = {
+  // DPO contact
+  getDpoContact: () =>
+    apiFetch<DpoContact | null>('/dpo-contact').catch((err) => {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }),
+  upsertDpoContact: (input: UpsertDpoContactInput) =>
+    apiFetch<DpoContact>('/dpo-contact', { method: 'PUT', body: input }),
+
+  // Data subject requests
+  listDataSubjectRequests: (status?: DataSubjectRequestStatus) =>
+    apiFetch<DataSubjectRequest[]>(
+      `/data-subject-requests${status ? `?status=${status}` : ''}`,
+    ),
+  createDataSubjectRequest: (input: {
+    type: DataSubjectRequestType;
+    subjectEmail: string;
+    notes?: string;
+  }) =>
+    apiFetch<DataSubjectRequest>('/data-subject-requests', {
+      method: 'POST',
+      body: input,
+    }),
+  approveDataSubjectRequest: (id: string) =>
+    apiFetch<DataSubjectRequest>(`/data-subject-requests/${id}/approve`, {
+      method: 'POST',
+    }),
+  denyDataSubjectRequest: (id: string, notes?: string) =>
+    apiFetch<DataSubjectRequest>(`/data-subject-requests/${id}/deny`, {
+      method: 'POST',
+      body: notes ? { notes } : {},
+    }),
+  executeDataSubjectRequest: (id: string) =>
+    apiFetch<{ request: DataSubjectRequest; snapshot?: unknown; erasure?: unknown }>(
+      `/data-subject-requests/${id}/execute`,
+      { method: 'POST' },
+    ),
+
+  // Retention actions
+  listRetentionActions: (status?: RetentionActionStatus) =>
+    apiFetch<RetentionAction[]>(
+      `/retention-actions${status ? `?status=${status}` : ''}`,
+    ),
+  approveRetention: (id: string) =>
+    apiFetch<RetentionAction>(`/retention-actions/${id}/approve`, {
+      method: 'POST',
+    }),
+  denyRetention: (id: string) =>
+    apiFetch<RetentionAction>(`/retention-actions/${id}/deny`, {
+      method: 'POST',
+    }),
+  manualSweep: () =>
+    apiFetch<{ docsScanned: number; created: number }>(
+      '/retention-actions/sweep',
+      { method: 'POST' },
+    ),
+
+  // Consent ledger
+  listConsentForSubject: (subjectEmail: string) =>
+    apiFetch<ConsentEvent[]>(
+      `/consent-events?subjectEmail=${encodeURIComponent(subjectEmail)}`,
+    ),
+  checkConsent: (subjectEmail: string, purpose: string) =>
+    apiFetch<{
+      subjectEmail: string;
+      purpose: string;
+      state: 'granted' | 'withdrawn' | null;
+    }>(
+      `/consent-events/check?subjectEmail=${encodeURIComponent(subjectEmail)}&purpose=${encodeURIComponent(purpose)}`,
+    ),
+  recordConsent: (input: {
+    subjectEmail: string;
+    purpose: string;
+    state: 'granted' | 'withdrawn';
+    source?: string;
+  }) =>
+    apiFetch<ConsentEvent>('/consent-events', {
+      method: 'POST',
+      body: input,
+    }),
+
+  // Ingestion
+  listIngestions: (status?: IngestionStatus, kind?: IngestionKind) => {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (kind) params.set('kind', kind);
+    const qs = params.toString();
+    return apiFetch<IngestionJob[]>(
+      `/ingestions${qs ? `?${qs}` : ''}`,
+    );
+  },
+  enqueueIngestion: (input: {
+    kind: IngestionKind;
+    payload: Record<string, unknown>;
+  }) =>
+    apiFetch<IngestionJob>('/ingestions', { method: 'POST', body: input }),
+};

@@ -1,7 +1,9 @@
 import { ResidencyGate, ResidencyViolation } from './residency-gate';
 
 function gate(env: Record<string, string | undefined>): ResidencyGate {
-  return new ResidencyGate(env as NodeJS.ProcessEnv);
+  const g = new ResidencyGate();
+  g.loadFrom(env as NodeJS.ProcessEnv);
+  return g;
 }
 
 const ksaProvider = {
