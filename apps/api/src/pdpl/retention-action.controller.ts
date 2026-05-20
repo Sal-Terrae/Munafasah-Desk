@@ -20,6 +20,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { Audited } from '../audit/audit.decorator';
 import { RetentionActionPersistenceService } from './retention-action.service';
+import { SchedulerOidcGuard } from './scheduler-oidc.guard';
 import {
   RetentionActionStatus,
   RetentionActionType,
@@ -116,5 +117,26 @@ export class RetentionActionController {
     @Req() req: { user?: { userId: string; organizationId: string } },
   ) {
     return this.svc.sweep(req.user!.organizationId, req.user!.userId);
+  }
+}
+
+/**
+ * Sibling controller for the Cloud Scheduler trigger. Separate from
+ * the JWT-gated `/retention-actions/sweep` above because the auth
+ * model is fundamentally different (Google OIDC ID token, not a
+ * tenant JWT cookie). Cloud Scheduler POSTs here daily at 02:00 KSA;
+ * the in-process `@nestjs/schedule` cron stays as the dev fallback.
+ */
+@Controller('retention-actions')
+export class RetentionScheduledController {
+  constructor(private readonly svc: RetentionActionPersistenceService) {}
+
+  @Post('sweep-scheduled')
+  @UseGuards(SchedulerOidcGuard)
+  async sweepScheduled(@Body() body: { organizationId?: string }) {
+    if (!body?.organizationId) {
+      return { skipped: 'organizationId required in body' };
+    }
+    return this.svc.sweep(body.organizationId, 'system:cloud-scheduler');
   }
 }

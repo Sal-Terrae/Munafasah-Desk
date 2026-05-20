@@ -42,6 +42,8 @@ model Organization {
   retentionActions    RetentionAction[]
   // P12b — ingestion
   ingestionJobs       IngestionJob[]
+  // P12c — DPO contact (one row per org via @@unique on DpoContact.organizationId)
+  dpoContact          DpoContact?
 }
 
 model User {
@@ -325,6 +327,23 @@ model TenderAccess {
   @@unique([userId, tenderId])
   @@index([organizationId])
   @@index([tenderId])
+}
+
+// P12c — DPO contact registry. Stores the tenant's Data Protection
+// Officer contact details + SDAIA authority recipient for the 72h
+// breach-notification flow. One row per organization.
+model DpoContact {
+  id                  String       @id @default(uuid())
+  organizationId      String       @unique
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                String
+  email               String
+  phone               String?
+  authorityEmail      String       // SDAIA recipient for breach notifications
+  retentionPolicyDays Int          @default(2555) // ~7 years default
+  updatedBy           String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 }
 
 // P12b — Worker queue: the API enqueues by inserting rows; the Python

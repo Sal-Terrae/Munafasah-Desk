@@ -15,6 +15,7 @@ import { DataSubjectRequestPrismaRepository } from './prisma/data-subject-reques
 import { TenderAccessPrismaRepository } from './prisma/tender-access.prisma.repository';
 import { RetentionActionPrismaRepository } from './prisma/retention-action.prisma.repository';
 import { IngestionJobPrismaRepository } from './prisma/ingestion-job.prisma.repository';
+import { DpoContactPrismaRepository } from './prisma/dpo-contact.prisma.repository';
 
 @Module({
   providers: [
@@ -34,6 +35,7 @@ import { IngestionJobPrismaRepository } from './prisma/ingestion-job.prisma.repo
     TenderAccessPrismaRepository,
     RetentionActionPrismaRepository,
     IngestionJobPrismaRepository,
+    DpoContactPrismaRepository,
   ],
   exports: [
     PrismaService,
@@ -52,6 +54,7 @@ import { IngestionJobPrismaRepository } from './prisma/ingestion-job.prisma.repo
     TenderAccessPrismaRepository,
     RetentionActionPrismaRepository,
     IngestionJobPrismaRepository,
+    DpoContactPrismaRepository,
   ],
 })
 export class RepositoriesModule {}

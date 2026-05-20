@@ -77,6 +77,20 @@ resource "google_cloud_run_v2_service" "api" {
           google_sql_database_instance.pg.connection_name,
         )
       }
+      # P12c: Cloud Scheduler's OIDC ID token is verified against this
+      # exact audience + caller email.
+      env {
+        name  = "SCHEDULER_OIDC_AUDIENCE"
+        value = "https://placeholder.run.app/retention-actions/sweep-scheduled"
+      }
+      env {
+        name  = "SCHEDULER_SA_EMAIL"
+        value = ""
+      }
+      env {
+        name  = "RETENTION_SCHEDULER_ENABLED"
+        value = "false"
+      }
 
       volume_mounts {
         name       = "cloudsql"

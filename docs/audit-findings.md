@@ -711,3 +711,88 @@ Playwright bedrock for the testing-strategy doc. No regressions.
   still env-only; we don't have an external LLM call site yet.
 - **Interface-token DI refactor + `as any` cleanup** — carried from
   P10.1 / P11.1. Nothing breaks; it's a hygiene cleanup.
+
+## 15. P12c result — CI E2E + load · DPO + Residency · Cloud Scheduler (2026‑05‑20)
+
+P12c closes four of the five §14 deferrals (only the DI / `as any`
+hygiene cleanup remains). No regressions; full gate green.
+
+### Closed by P12c
+- **CI lanes for k6 + Playwright.** `.github/workflows/ci.yml` gains
+  two new jobs that bring up Postgres as a service container, materialise
+  the schema via `prisma migrate deploy`, seed the pilot org, build +
+  start the api + web in background, and then:
+  - `web-e2e` runs Playwright (Chromium) + `@axe-core/playwright` against
+    the live stack at `http://localhost:3000`. Uploads `playwright-report`
+    + server logs as artefacts on every run.
+  - `web-load-smoke` logs in via cURL, extracts the `bidready_session`
+    cookie, installs k6, runs `tests/load/k6/dashboard-smoke.js` (3 VU
+    × 20s) with the SLO threshold P95 < 2s. The full
+    `tests/load/k6/dashboard.js` (50 VU × 1m) is still the manual gate
+    against a real staging URL.
+- **DPO contact registry + authority-notification dispatch.** New
+  `DpoContact` model (1 row per org, enforced via `@@unique([organizationId])`),
+  migration `20260520000003_p12c_dpo`, interface/fake/Prisma repo + DI
+  registration. `DpoContactService` exposes `upsert` (Owner-only
+  endpoint `PUT /dpo-contact`), `get` (any role), `require`, and
+  **`notifyAuthority(org, incident, triggeredBy)`** — refuses unless
+  `IncidentService.requiresAuthorityNotification(...)` is true,
+  otherwise builds the canonical SDAIA payload (subject + body + cc to
+  DPO email), writes an `incident.authority_notified` audit event
+  carrying recipient + detected/severity/kind, and returns the
+  dispatch record with `delivered=false` (real SMTP transport is org
+  infra). 6 new unit tests cover the upsert validation, audit
+  emission, 72h gate, and missing-DPO refusal.
+- **Runtime residency enforcement.** New `ResidencyGate` service in
+  `apps/api/src/pdpl/residency-gate.ts`:
+  - `isAllowed(provider, sensitivity)` / `assertAllowed(...)` (throws
+    `ResidencyViolation` → HTTP 403)
+  - **ksa mode (default):** medium/high sensitivity refuses any
+    cross-border provider
+  - **cross_border mode:** opt-in via env, accepts cross-border
+    providers *only* when the provider declares a `safeguard` token
+    AND that token is registered in
+    `MUNAFASAH_CROSS_BORDER_SAFEGUARDS`
+  - low sensitivity is always allowed
+  - Unknown `MUNAFASAH_RESIDENCY` value fails safe to `ksa`
+  - Registered in `PdplModule.exports` so the worker (when it gets a
+    real LLM call site) and any future intra-API external call site
+    can inject it
+  - 9 unit tests across both modes + all combinations
+- **Cloud Scheduler trigger.** New `infra/terraform/cloud_scheduler.tf`
+  provisions:
+  - `bidready-scheduler` service account
+  - `roles/iam.serviceAccountTokenCreator` on itself for the
+    Cloud Scheduler service agent (so it can mint OIDC tokens)
+  - `roles/run.invoker` on the API service for the scheduler SA
+  - One `google_cloud_scheduler_job` per `var.scheduler_tenant_org_ids`
+    entry, running at `0 2 * * *` `Asia/Riyadh`, POSTing
+    `{ organizationId }` to `/retention-actions/sweep-scheduled` with
+    an OIDC ID token whose `aud` matches that URL
+  - `cloudscheduler.googleapis.com` added to required APIs
+  Backend pairs with a new `RetentionScheduledController` +
+  `SchedulerOidcGuard` (`apps/api/src/pdpl/scheduler-oidc.guard.ts`)
+  that uses `google-auth-library`'s `OAuth2Client.verifyIdToken` to
+  cryptographically verify the token against Google's JWKS, then
+  checks issuer + audience + `email == SCHEDULER_SA_EMAIL` +
+  `email_verified`. Fail-closed when either env var is missing; 7
+  unit tests cover every rejection path + the happy path.
+
+### Tests added at P12c (all green)
+- API jest unit: **171/171** (was 149 at P12b). 22 new: 6 DPO contact
+  service + 9 residency gate + 7 scheduler OIDC guard.
+- Web vitest: 18/18 (unchanged).
+- Worker pytest: 36/36 (unchanged).
+
+### Gate evidence
+- API tsc clean · jest **171/171 in 7.3s** · integration 28 skipped
+  (no Docker locally), full green expected on CI
+- Web tsc clean · vitest **18/18** · `next build` clean
+- Python ruff clean · pytest **36/36**
+
+### Knowingly deferred to P13
+- **Interface-token DI refactor.** Services still use
+  `@Inject(<ConcretePrismaClass>)` instead of symbol tokens. Mechanical
+  but a large diff; defers without blocking any user-visible feature.
+- **`as any` Prisma return casts.** Same — explicit narrowing on every
+  `findUnique(...) as any` in the prisma repos. Hygiene cleanup.

@@ -12,8 +12,15 @@ import { ConsentLedgerController } from './consent-ledger.controller';
 import { TenderAccessService } from './tender-access.service';
 import { TenderAccessController } from './tender-access.controller';
 import { RetentionActionPersistenceService } from './retention-action.service';
-import { RetentionActionController } from './retention-action.controller';
+import {
+  RetentionActionController,
+  RetentionScheduledController,
+} from './retention-action.controller';
 import { RetentionScheduler } from './retention.scheduler';
+import { SchedulerOidcGuard } from './scheduler-oidc.guard';
+import { DpoContactService } from './dpo-contact.service';
+import { DpoContactController } from './dpo-contact.controller';
+import { ResidencyGate } from './residency-gate';
 
 @Module({
   imports: [AuthModule, AuditModule, RepositoriesModule],
@@ -25,6 +32,9 @@ import { RetentionScheduler } from './retention.scheduler';
     TenderAccessService,
     RetentionActionPersistenceService,
     RetentionScheduler,
+    SchedulerOidcGuard,
+    DpoContactService,
+    ResidencyGate,
   ],
   controllers: [
     PdplController,
@@ -32,6 +42,8 @@ import { RetentionScheduler } from './retention.scheduler';
     ConsentLedgerController,
     TenderAccessController,
     RetentionActionController,
+    RetentionScheduledController,
+    DpoContactController,
   ],
   exports: [
     RetentionService,
@@ -40,6 +52,8 @@ import { RetentionScheduler } from './retention.scheduler';
     ConsentLedgerService,
     TenderAccessService,
     RetentionActionPersistenceService,
+    DpoContactService,
+    ResidencyGate,
   ],
 })
 export class PdplModule {}

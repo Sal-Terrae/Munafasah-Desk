@@ -32,6 +32,7 @@ resource "google_project_service" "required" {
     "compute.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "sts.googleapis.com",
+    "cloudscheduler.googleapis.com",
   ])
   service            = each.key
   disable_on_destroy = false

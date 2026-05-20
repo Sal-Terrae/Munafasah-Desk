@@ -244,3 +244,15 @@ export interface UpdateIngestionJobData {
   completedAt?: Date | null;
   attempts?: number;
 }
+
+// ---------- P12c DPO contact ----------
+
+export interface UpsertDpoContactData {
+  organizationId: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  authorityEmail: string;
+  retentionPolicyDays?: number;
+  updatedBy?: string | null;
+}

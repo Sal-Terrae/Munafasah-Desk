@@ -54,6 +54,170 @@ jobs:
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
+  web-e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bidready
+          POSTGRES_USER: bidready
+          POSTGRES_PASSWORD: bidready_dev_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bidready"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://bidready:bidready_dev_pw@localhost:5432/bidready
+      JWT_SECRET: ci-jwt-secret-32chars-minimum-not-real-secret-1234
+      CORS_ORIGIN: http://localhost:3000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      E2E_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace apps/api run prisma:generate
+      - name: Materialise schema (prisma migrate deploy)
+        run: npx prisma migrate deploy --schema=prisma/schema.prisma
+      - name: Seed pilot org + 6-role users
+        run: npm --workspace apps/api run db:seed
+      - name: Build api
+        run: npm --workspace apps/api run build
+      - name: Build web
+        run: npm --workspace apps/web run build
+      - name: Install Playwright browsers
+        run: npx --workspace apps/web playwright install --with-deps chromium
+      - name: Start api (background)
+        run: |
+          (cd apps/api && node dist/main.js > ../../api.log 2>&1) &
+          echo $! > .api.pid
+      - name: Start web (background)
+        run: |
+          (cd apps/web && npm run start > ../../web.log 2>&1) &
+          echo $! > .web.pid
+      - name: Wait for api + web readiness
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8080/health > /dev/null && break || sleep 2
+          done
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3000/login > /dev/null && break || sleep 2
+          done
+          curl -fsS http://localhost:8080/health
+          curl -fsS -o /dev/null -w "web /login %{http_code}\n" http://localhost:3000/login
+      - name: Run Playwright E2E (+ axe-core)
+        run: npm --workspace apps/web run test:e2e
+      - if: always()
+        name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          if-no-files-found: ignore
+      - if: always()
+        name: Upload server logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: |
+            api.log
+            web.log
+          if-no-files-found: ignore
+
+  web-load-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bidready
+          POSTGRES_USER: bidready
+          POSTGRES_PASSWORD: bidready_dev_pw
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bidready"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://bidready:bidready_dev_pw@localhost:5432/bidready
+      JWT_SECRET: ci-jwt-secret-32chars-minimum-not-real-secret-1234
+      CORS_ORIGIN: http://localhost:3000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace apps/api run prisma:generate
+      - run: npx prisma migrate deploy --schema=prisma/schema.prisma
+      - run: npm --workspace apps/api run db:seed
+      - run: npm --workspace apps/api run build
+      - run: npm --workspace apps/web run build
+      - name: Start api + web
+        run: |
+          (cd apps/api && node dist/main.js > ../../api.log 2>&1) &
+          (cd apps/web && npm run start > ../../web.log 2>&1) &
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8080/health > /dev/null && break || sleep 2
+          done
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3000/login > /dev/null && break || sleep 2
+          done
+      - name: Login + capture session cookie
+        id: login
+        run: |
+          set -e
+          headers=$(curl -isS -X POST http://localhost:8080/auth/login \
+            -H 'content-type: application/json' \
+            -d '{"email":"owner@pilot.local","password":"pilot-dev-Owner"}')
+          cookie=$(printf '%s' "$headers" | tr -d '\r' \
+            | awk 'tolower($1)=="set-cookie:" && index($0,"bidready_session=") { sub(/.*bidready_session=/,""); sub(/;.*/,""); print; exit }')
+          if [ -z "$cookie" ]; then
+            echo "::error::Could not extract session cookie"
+            printf '%s\n' "$headers"
+            exit 1
+          fi
+          echo "::add-mask::$cookie"
+          echo "cookie=$cookie" >> "$GITHUB_OUTPUT"
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+      - name: k6 dashboard smoke (SLO P95<2s)
+        env:
+          SESSION_COOKIE: ${{ steps.login.outputs.cookie }}
+        run: |
+          k6 run \
+            -e BASE_URL=http://localhost:3000 \
+            -e API_URL=http://localhost:8080 \
+            -e SESSION_COOKIE="$SESSION_COOKIE" \
+            tests/load/k6/dashboard-smoke.js
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-smoke-logs
+          path: |
+            api.log
+            web.log
+          if-no-files-found: ignore
+
   terraform-validate:
     runs-on: ubuntu-latest
     steps:
