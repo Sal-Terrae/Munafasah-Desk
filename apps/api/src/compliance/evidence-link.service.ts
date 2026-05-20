@@ -61,4 +61,11 @@ export class EvidenceLinkService {
   ): Promise<EvidenceLink[]> {
     return this.links.findAllForItem(complianceItemId, organizationId);
   }
+
+  listForDocument(
+    documentId: string,
+    organizationId: string,
+  ): Promise<EvidenceLink[]> {
+    return this.links.findAllForDocument(documentId, organizationId);
+  }
 }

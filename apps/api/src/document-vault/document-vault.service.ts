@@ -66,6 +66,25 @@ export class DocumentVaultService {
     return this.repo.update(id, organizationId, { state });
   }
 
+  /** Attach the just-uploaded blob handle to the row. Separated from
+   *  `register` because the row id is needed to build the storage key
+   *  before the object-store put runs. */
+  attachBlob(
+    id: string,
+    organizationId: string,
+    blob: {
+      storageKey: string;
+      contentType: string;
+      sizeBytes: number;
+    },
+  ): Promise<ClientDocument> {
+    return this.repo.update(id, organizationId, blob);
+  }
+
+  delete(id: string, organizationId: string): Promise<boolean> {
+    return this.repo.delete(id, organizationId);
+  }
+
   /** Documents that expire on/before `before` and are not archived. */
   async listExpiring(
     organizationId: string,

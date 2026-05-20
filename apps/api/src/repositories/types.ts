@@ -53,6 +53,9 @@ export interface CreateClientDocumentData {
   sensitivity?: string;
   state?: string;
   expiresAt?: Date | null;
+  storageKey?: string | null;
+  contentType?: string | null;
+  sizeBytes?: number | null;
 }
 
 export interface UpdateClientDocumentData {
@@ -61,6 +64,9 @@ export interface UpdateClientDocumentData {
   sensitivity?: string;
   state?: string;
   expiresAt?: Date | null;
+  storageKey?: string | null;
+  contentType?: string | null;
+  sizeBytes?: number | null;
 }
 
 export interface CreateAuditEventData {

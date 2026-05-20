@@ -212,6 +212,7 @@ export const strings = {
   riskHigh: { ar: 'مرتفعة', en: 'High' },
   riskCritical: { ar: 'حرجة', en: 'Critical' },
   userIdLabel: { ar: 'معرّف المستخدم', en: 'User ID' },
+  user: { ar: 'المستخدم', en: 'User' },
   role: { ar: 'الدور', en: 'Role' },
   grantAccess: { ar: 'منح صلاحية', en: 'Grant access' },
   revoke: { ar: 'سحب', en: 'Revoke' },

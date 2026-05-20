@@ -13,6 +13,7 @@ import { resolveServerLocale } from '../../lib/locale';
 import { t, type Locale, type StringKey } from '../../lib/i18n';
 import { AppShell } from '../../components/AppShell';
 import { DocumentRegisterForm } from './document-register-form';
+import { DocumentUploadForm } from './document-upload-form';
 import { DocumentRowActions } from './document-row-actions';
 
 export const dynamic = 'force-dynamic';
@@ -102,16 +103,30 @@ export default async function DocumentsPage({
       </header>
 
       <section className="panel">
-        <h2>{t('registerDocument', locale)}</h2>
+        <h2>{locale === 'ar' ? 'رفع وثيقة' : 'Upload document'}</h2>
         {clients.length === 0 ? (
           <p className="muted">
             {t('noClientsYet', locale)}{' '}
             <Link href="/clients">/clients</Link>
           </p>
         ) : (
-          <DocumentRegisterForm locale={locale} clients={clients} />
+          <DocumentUploadForm locale={locale} clients={clients} />
         )}
       </section>
+
+      {clients.length > 0 && (
+        <details className="quick-register">
+          <summary>
+            {locale === 'ar'
+              ? 'تسجيل سريع (بيانات وصفية فقط، بدون ملف)'
+              : 'Quick register (metadata only, no file)'}
+          </summary>
+          <section className="panel">
+            <h2>{t('registerDocument', locale)}</h2>
+            <DocumentRegisterForm locale={locale} clients={clients} />
+          </section>
+        </details>
+      )}
 
       <section className="panel">
         <header className="panel-header">
@@ -184,7 +199,14 @@ export default async function DocumentsPage({
                   SENSITIVITY_LABEL[doc.sensitivity] ?? 'sensitivityLow';
                 return (
                   <tr key={doc.id}>
-                    <td>{doc.filename}</td>
+                    <td>
+                      <Link
+                        href={`/documents/${doc.id}`}
+                        className="feed-title"
+                      >
+                        {doc.filename}
+                      </Link>
+                    </td>
                     <td className="muted">{clientName(doc.clientCompanyId)}</td>
                     <td>
                       <span className="chip">{doc.documentType}</span>

@@ -38,6 +38,9 @@ export class FakeClientDocumentRepository
       sensitivity: data.sensitivity ?? 'low',
       state: data.state ?? 'active',
       expiresAt: data.expiresAt ?? null,
+      storageKey: data.storageKey ?? null,
+      contentType: data.contentType ?? null,
+      sizeBytes: data.sizeBytes ?? null,
       clientCompanyId: data.clientCompanyId,
       organizationId: data.organizationId,
       createdAt: new Date(),
@@ -70,6 +73,15 @@ export class FakeClientDocumentRepository
     }
     if (data.expiresAt !== undefined) {
       doc.expiresAt = data.expiresAt;
+    }
+    if (data.storageKey !== undefined) {
+      doc.storageKey = data.storageKey;
+    }
+    if (data.contentType !== undefined) {
+      doc.contentType = data.contentType;
+    }
+    if (data.sizeBytes !== undefined) {
+      doc.sizeBytes = data.sizeBytes;
     }
     doc.updatedAt = new Date();
     return doc;

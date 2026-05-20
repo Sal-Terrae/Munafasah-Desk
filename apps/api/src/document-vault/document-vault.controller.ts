@@ -15,11 +15,15 @@ import {
   DocumentVaultService,
   RegisterDocumentInput,
 } from './document-vault.service';
+import { EvidenceLinkService } from '../compliance/evidence-link.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('documents')
 export class DocumentVaultController {
-  constructor(private readonly svc: DocumentVaultService) {}
+  constructor(
+    private readonly svc: DocumentVaultService,
+    private readonly links: EvidenceLinkService,
+  ) {}
 
   private orgId(req: { user?: { organizationId: string } }): string {
     return req.user!.organizationId;
@@ -56,6 +60,15 @@ export class DocumentVaultController {
     },
   ) {
     return this.svc.get(id, this.orgId(req), req.user?.role);
+  }
+
+  /** Items that use this document as evidence (PRD ERD §3). */
+  @Get(':id/evidence-links')
+  evidenceLinks(
+    @Param('id') id: string,
+    @Req() req: { user?: { organizationId: string } },
+  ) {
+    return this.links.listForDocument(id, this.orgId(req));
   }
 
   @Patch(':id/state')

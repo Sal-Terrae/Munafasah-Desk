@@ -14,6 +14,7 @@ import { ComplianceModule } from './compliance/compliance.module';
 import { ExportModule } from './export/export.module';
 import { PdplModule } from './pdpl/pdpl.module';
 import { IngestionModule } from './ingestion/ingestion.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { IngestionModule } from './ingestion/ingestion.module';
     ExportModule,
     PdplModule,
     IngestionModule,
+    UsersModule,
   ],
   providers: [
     {

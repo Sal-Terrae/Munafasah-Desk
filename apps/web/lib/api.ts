@@ -74,6 +74,9 @@ export interface ClientDocument {
   sensitivity: DocumentSensitivity | string;
   state: DocumentState | string;
   expiresAt: string | null;
+  storageKey?: string | null;
+  contentType?: string | null;
+  sizeBytes?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -166,6 +169,34 @@ export async function apiFetch<T>(
   if (res.status === 204) {
     return undefined as T;
   }
+  return (await res.json()) as T;
+}
+
+/**
+ * Multipart helper for file uploads. We can't reuse `apiFetch` because
+ * it forces JSON serialisation; multipart needs the raw FormData (so
+ * the browser sets the right `Content-Type` boundary).
+ */
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+): Promise<T> {
+  const res = await fetch(`${apiBaseUrl}${path}`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      // ignore parse errors
+    }
+    throw new ApiError(res.status, body);
+  }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -326,8 +357,24 @@ export const tenderApi = {
       { method: 'DELETE' },
     ),
 
+  // Users (admin) — Owner-only on the backend; UI degrades to a
+  // free-text userId field on 403.
+  listUsers: () => apiFetch<PublicUser[]>('/users'),
+
   // Document vault
   listDocuments: () => apiFetch<ClientDocument[]>('/documents'),
+  getDocument: (id: string) =>
+    apiFetch<ClientDocument>(`/documents/${encodeURIComponent(id)}`),
+  listDocumentEvidence: (id: string) =>
+    apiFetch<
+      Array<{
+        id: string;
+        complianceItemId: string;
+        documentId: string;
+        note: string | null;
+        createdAt: string;
+      }>
+    >(`/documents/${encodeURIComponent(id)}/evidence-links`),
   registerDocument: (input: RegisterDocumentInput) =>
     apiFetch<ClientDocument>('/documents', {
       method: 'POST',
@@ -337,6 +384,25 @@ export const tenderApi = {
     apiFetch<ClientDocument>(
       `/documents/${encodeURIComponent(id)}/state`,
       { method: 'PATCH', body: { state } },
+    ),
+  uploadDocument: (input: {
+    file: File;
+    clientCompanyId: string;
+    documentType?: string;
+    sensitivity?: DocumentSensitivity;
+    expiresAt?: string | null;
+  }) => {
+    const fd = new FormData();
+    fd.append('file', input.file, input.file.name);
+    fd.append('clientCompanyId', input.clientCompanyId);
+    if (input.documentType) fd.append('documentType', input.documentType);
+    if (input.sensitivity) fd.append('sensitivity', input.sensitivity);
+    if (input.expiresAt) fd.append('expiresAt', input.expiresAt);
+    return apiUpload<ClientDocument>('/documents/upload', fd);
+  },
+  documentDownloadUrl: (id: string) =>
+    apiFetch<{ url: string; filename: string }>(
+      `/documents/${encodeURIComponent(id)}/download`,
     ),
 };
 

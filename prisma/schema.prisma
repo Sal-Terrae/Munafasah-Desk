@@ -91,7 +91,10 @@ model Tender {
 
 // Re-parented to ClientCompany (PRD ERD §3 fix). Documents are reusable
 // across multiple tenders for the same client; per-tender binding lives
-// in EvidenceLink against ComplianceItem.
+// in EvidenceLink against ComplianceItem. Blob lives in the object
+// store; the row carries `storageKey` + `contentType` + `sizeBytes`
+// when an actual file is uploaded (nullable so legacy
+// register-by-filename rows stay valid).
 model ClientDocument {
   id              String         @id @default(uuid())
   filename        String
@@ -103,6 +106,9 @@ model ClientDocument {
   sensitivity     String         @default("low")
   state           String         @default("active")
   expiresAt       DateTime?
+  storageKey      String?
+  contentType     String?
+  sizeBytes       Int?
   evidenceLinks   EvidenceLink[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
