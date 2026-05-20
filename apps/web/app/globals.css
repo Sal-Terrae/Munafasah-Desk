@@ -441,6 +441,23 @@ h2 { font-size: 1.05rem; margin: 0 0 var(--s-3); }
 .chip-failed { background: var(--c-danger-bg); color: var(--c-danger); }
 .chip-granted { background: var(--c-ok-bg); color: var(--c-ok); }
 .chip-withdrawn { background: var(--c-danger-bg); color: var(--c-danger); }
+/* Document states */
+.chip-active { background: var(--c-ok-bg); color: var(--c-ok); }
+.chip-expiring { background: var(--c-warn-bg); color: var(--c-warn); }
+.chip-restricted { background: var(--c-danger-bg); color: var(--c-danger); }
+.chip-archived { background: var(--c-surface-2); color: var(--c-text-muted); }
+/* Document sensitivity */
+.chip-sens-low { background: var(--c-surface-2); color: var(--c-text-muted); }
+.chip-sens-medium { background: var(--c-warn-bg); color: var(--c-warn); }
+.chip-sens-high { background: var(--c-danger-bg); color: var(--c-danger); }
+.state-select {
+  font: inherit;
+  font-size: .8rem;
+  padding: .2rem .4rem;
+  border: 1px solid var(--c-border-2);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+}
 
 .filter-row {
   display: flex;

@@ -235,6 +235,34 @@ export const strings = {
   auditTimestamp: { ar: 'الوقت', en: 'Timestamp' },
   auditUser: { ar: 'المستخدم', en: 'User' },
   auditAnonymised: { ar: 'مجهَّل', en: 'Anonymised' },
+  // ----- Documents -----
+  documentsTitle: { ar: 'الوثائق', en: 'Documents' },
+  documentsLead: {
+    ar: 'خزانة وثائق العميل القابلة لإعادة الاستخدام عبر العطاءات.',
+    en: 'Per-client document vault, reusable across tenders.',
+  },
+  registerDocument: { ar: 'تسجيل وثيقة', en: 'Register document' },
+  filename: { ar: 'اسم الملف', en: 'Filename' },
+  documentType: { ar: 'النوع', en: 'Type' },
+  sensitivity: { ar: 'الحساسية', en: 'Sensitivity' },
+  expiresAt: { ar: 'تاريخ الانتهاء', en: 'Expires at' },
+  docTypeLegal: { ar: 'قانوني', en: 'legal' },
+  docTypeFinancial: { ar: 'مالي', en: 'financial' },
+  docTypeTechnical: { ar: 'فني', en: 'technical' },
+  docTypeAdmin: { ar: 'إداري', en: 'admin' },
+  docTypeOther: { ar: 'آخر', en: 'other' },
+  sensitivityLow: { ar: 'منخفضة', en: 'low' },
+  sensitivityMedium: { ar: 'متوسطة', en: 'medium' },
+  sensitivityHigh: { ar: 'مرتفعة', en: 'high' },
+  stateActive: { ar: 'نشطة', en: 'Active' },
+  stateExpiring: { ar: 'قاربت على الانتهاء', en: 'Expiring' },
+  stateRestricted: { ar: 'مقيَّدة', en: 'Restricted' },
+  stateArchived: { ar: 'مؤرشفة', en: 'Archived' },
+  cycleState: { ar: 'تغيير الحالة', en: 'Change state' },
+  noDocumentsYet: {
+    ar: 'لا توجد وثائق بعد. ابدأ بتسجيل وثيقة جديدة.',
+    en: 'No documents yet. Register one to get started.',
+  },
 } satisfies Record<string, Pair>;
 
 export type StringKey = keyof typeof strings;

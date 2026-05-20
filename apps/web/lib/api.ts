@@ -41,6 +41,41 @@ export interface DocumentSummary {
   sensitivity: string;
   state: string;
   expiresAt: string | null;
+  // Present when fetched from /documents (full ClientDocument row).
+  // Undefined on the dashboard's "expiring" payload type, which
+  // historically only carried summary fields. Treat as optional.
+  clientCompanyId?: string;
+  organizationId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type DocumentState =
+  | 'active'
+  | 'expiring'
+  | 'restricted'
+  | 'archived';
+export type DocumentSensitivity = 'low' | 'medium' | 'high';
+
+export interface RegisterDocumentInput {
+  filename: string;
+  clientCompanyId: string;
+  documentType?: string;
+  sensitivity?: DocumentSensitivity;
+  expiresAt?: string | null;
+}
+
+export interface ClientDocument {
+  id: string;
+  filename: string;
+  clientCompanyId: string;
+  organizationId: string;
+  documentType: string;
+  sensitivity: DocumentSensitivity | string;
+  state: DocumentState | string;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ComplianceItemSummary {
@@ -289,6 +324,19 @@ export const tenderApi = {
     apiFetch<{ removed: boolean }>(
       `/tenders/${encodeURIComponent(tenderId)}/access/${encodeURIComponent(userId)}`,
       { method: 'DELETE' },
+    ),
+
+  // Document vault
+  listDocuments: () => apiFetch<ClientDocument[]>('/documents'),
+  registerDocument: (input: RegisterDocumentInput) =>
+    apiFetch<ClientDocument>('/documents', {
+      method: 'POST',
+      body: input,
+    }),
+  setDocumentState: (id: string, state: DocumentState) =>
+    apiFetch<ClientDocument>(
+      `/documents/${encodeURIComponent(id)}/state`,
+      { method: 'PATCH', body: { state } },
     ),
 };
 
