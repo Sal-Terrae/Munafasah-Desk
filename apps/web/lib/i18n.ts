@@ -1,12 +1,17 @@
 /**
  * Arabic-first bilingual strings + locale helper. Tiny, dependency-free.
- * Server components receive `locale` via a cookie/header; for MVP we
- * default to Arabic with English as the secondary surface.
+ * Server components receive `locale` via the `bidready_locale` cookie;
+ * the default is Arabic.
  */
 
 export type Locale = 'ar' | 'en';
 
 export const DEFAULT_LOCALE: Locale = 'ar';
+export const LOCALE_COOKIE = 'bidready_locale';
+
+export function isLocale(value: unknown): value is Locale {
+  return value === 'ar' || value === 'en';
+}
 
 type Pair = { ar: string; en: string };
 
@@ -34,10 +39,24 @@ export const strings = {
   email: { ar: 'البريد الإلكتروني', en: 'Email' },
   password: { ar: 'كلمة المرور', en: 'Password' },
   emptyTenders: { ar: 'لا توجد عطاءات بعد', en: 'No tenders yet' },
+  emptyTasks: { ar: 'لا توجد مهام حرجة', en: 'No critical tasks' },
+  emptyExpiring: { ar: 'لا توجد وثائق قاربت على الانتهاء', en: 'No expiring docs' },
   loadFailed: {
     ar: 'تعذّر تحميل البيانات. أعد المحاولة لاحقاً.',
     en: 'Could not load data. Try again later.',
   },
+  navDashboard: { ar: 'لوحة التحكم', en: 'Dashboard' },
+  navTenders: { ar: 'العطاءات', en: 'Tenders' },
+  navDocuments: { ar: 'الوثائق', en: 'Documents' },
+  navCompliance: { ar: 'الامتثال', en: 'Compliance' },
+  navReports: { ar: 'التقارير', en: 'Reports' },
+  navAdmin: { ar: 'الإدارة', en: 'Admin' },
+  navSettings: { ar: 'الإعدادات', en: 'Settings' },
+  skipToContent: {
+    ar: 'انتقل إلى المحتوى الرئيسي',
+    en: 'Skip to main content',
+  },
+  toggleLocale: { ar: 'English', en: 'العربية' },
 } satisfies Record<string, Pair>;
 
 export type StringKey = keyof typeof strings;

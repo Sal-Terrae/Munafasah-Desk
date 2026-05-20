@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.*
+*.log
+coverage
+.git
+.github
+**/__tests__/**
+**/*.spec.ts
+**/*.it.spec.ts
+jest.config.js
+jest.integration.config.js
+jest.setup.ts
+test

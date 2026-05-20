@@ -38,6 +38,33 @@ jobs:
       # needed — each suite spins its own ephemeral Postgres.
       - run: npm --workspace apps/api run test:integration
 
+  web-a11y:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace apps/api run prisma:generate
+      - run: npm --workspace apps/web run build
+      - name: Run Lighthouse CI (a11y + performance budget)
+        run: npx --yes @lhci/cli@0.14.x autorun --config=apps/web/lighthouserc.json
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.x
+      - run: terraform -chdir=infra/terraform fmt -check -recursive
+      - run: terraform -chdir=infra/terraform init -backend=false
+      - run: terraform -chdir=infra/terraform validate
+
   python:
     runs-on: ubuntu-latest
     defaults:

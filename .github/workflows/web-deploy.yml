@@ -1,0 +1,65 @@
+name: Web deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'apps/web/Dockerfile'
+      - '.github/workflows/web-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: web-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  IMAGE_NAME: bidready-web
+  SERVICE_NAME: bidready-web
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA_EMAIL }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Compute image tag
+        id: tag
+        run: |
+          short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)
+          echo "tag=${{ secrets.GCP_ARTIFACT_REGISTRY }}/${IMAGE_NAME}:${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: docker build -f apps/web/Dockerfile -t "${{ steps.tag.outputs.tag }}" .
+
+      - name: Push image
+        run: docker push "${{ steps.tag.outputs.tag }}"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE_NAME}" \
+            --image="${{ steps.tag.outputs.tag }}" \
+            --region="${{ secrets.GCP_REGION }}" \
+            --platform=managed \
+            --service-account="bidready-web@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --quiet

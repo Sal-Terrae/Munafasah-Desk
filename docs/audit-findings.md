@@ -511,3 +511,105 @@ All gates green; no regressions.
   separation of duties wired to the new repo) is the P11.1 follow-up.
 - **Interface-token DI refactor + `as any` cleanup** — still open
   (carried from P10.1).
+
+## 13. P12a result — Cloud Run deploy infra + UX polish (2026‑05‑20)
+
+P12a is the **deploy-ready** half of P12: every artefact required to
+roll the application to Cloud Run is committed (Dockerfiles, Terraform,
+WIF-authed deploy workflows, initial Prisma migration baseline), plus
+the UX polish needed for an honest Arabic-first first impression. The
+remaining P12 work (Etimad adapter, worker queue, k6 load, daily
+retention scheduler) lands as P12b. No regressions.
+
+### Closed by P12a
+- **Initial Prisma migration baseline.** `prisma/migrations/20260520000001_init/`
+  generated via `prisma migrate diff --from-empty --to-schema-datamodel`.
+  `prisma migrate deploy` now has a deterministic history root instead
+  of `prisma db push` against an empty DB. Cloud Run boot CMD runs
+  `prisma migrate deploy` then the API. (Closes the §11 "initial Prisma
+  migration file" deferral.)
+- **Dockerfiles for api + web.** Multi-stage Node 20 alpine; api ships
+  prod deps + Prisma client + migrations and runs as non-root user;
+  web uses Next 15 `output: 'standalone'` so the runtime image is ~50MB.
+  Both with `.dockerignore` so tests / node_modules / .next don't bloat
+  the context.
+- **Terraform (`infra/terraform/`).** Minimum-but-correct GCP infra:
+  - Region default: `me-central2` (Dammam) for Saudi residency.
+  - Artifact Registry repo
+  - Cloud SQL Postgres 16 (zonal, PITR + daily backups, public IP +
+    Cloud SQL Auth Proxy unix socket — no `authorized_networks`)
+  - Cloud Run v2 services for api + web (api wired to the SQL socket
+    via `volumes.cloud_sql_instance`, env from Secret Manager refs)
+  - Secret Manager: `jwt-secret` (operator-set via gcloud, never in TF
+    state) and `db-password` (TF-generated random + version)
+  - Runtime SAs `bidready-api` / `bidready-web` with minimum roles
+  - **Workload Identity Federation** pool + provider gated to the
+    `ZeeshanAmjad0495/Munafasah-Desk` repo; deploy SA `bidready-deploy`
+    has `artifactregistry.writer` + `run.admin` + impersonate-runtime;
+    GitHub Actions OIDC tokens impersonate it. **No SA JSON keys
+    anywhere.**
+- **Deploy workflows.** `.github/workflows/api-deploy.yml` and
+  `web-deploy.yml` — path-filtered, concurrency-grouped, no-cancel.
+  Each: WIF auth → `gcloud auth configure-docker` → `docker build/push`
+  to Artifact Registry → `gcloud run deploy` to the service account.
+  Image tagged with the short SHA.
+- **UX polish (the Arabic-first first impression).**
+  - **Fonts:** Tajawal + IBM Plex Sans Arabic via `next/font/google`
+    with CSS variable handoff; falls back to system Arabic + Latin.
+  - **Design tokens** (`globals.css` `:root`): colour/space/radius/
+    type-stack/layout CSS variables — everything keys off these.
+  - **Locale toggle.** `bidready_locale` cookie + `LocaleProvider`
+    (client). Server reads via `resolveServerLocale()` and stamps
+    `<html lang/dir>` correctly per locale.
+  - **App shell.** `<AppShell>` adds `<AppHeader>` (brand + locale
+    toggle + signed-in user + sign-out) and `<AppSidebar>` (7-item PRD
+    nav). Wraps `/` and `/tenders/[id]` (login stays standalone).
+  - **A11y semantics.** `skip-link`, `role="banner"`, `<nav>` landmark,
+    `<main id="main" tabindex="-1">`, `:focus-visible` outline on every
+    interactive element, `aria-label` on icon-style controls.
+  - **Loading / empty / error states.** `/` renders explicit "no
+    tenders / no tasks / no expiring docs" panels and an `role="alert"`
+    error banner on dashboard load failure.
+  - **Intl helpers** (`lib/locale.ts`): `formatNumber`, `formatSar`,
+    `formatDate` using `Intl.NumberFormat('ar-SA')` /
+    `Intl.DateTimeFormat('ar-SA')`. Available for adoption by
+    components in P12b.
+- **CI lanes added.**
+  - `web-a11y` — `npm run build` + `lhci autorun` against `/login`
+    with explicit thresholds (a11y ≥ 0.9 hard; performance / best-
+    practices / SEO as warnings). Config at `apps/web/lighthouserc.json`.
+  - `terraform-validate` — `terraform fmt -check`, `init -backend=false`,
+    `validate`. Catches drift before push to main.
+- **README refreshed.** Removed the stale "Phase 0 — skeleton only"
+  language (closes audit §9 README staleness row). New content: real
+  monorepo layout, current status, local quickstart, deploy pointer.
+
+### Gates (local)
+- API tsc clean · jest unit **135/135 in 7.1s** · jest integration
+  28 skipped (no Docker locally) in 5.5s
+- Web tsc clean · vitest **18/18** · `next build` clean (standalone
+  output enabled; routes still 4 dynamic; per-route bundle ~2.6 kB)
+- Python ruff clean · pytest 22/22
+- Terraform format/validate deferred to CI (CLI not installed locally;
+  `terraform-validate` job in `.github/workflows/ci.yml` covers it)
+
+### Knowingly deferred to P12b
+- **Etimad manual-upload adapter** — parse Etimad notice → Tender +
+  TenderRequirement rows.
+- **Inbound-email webhook + worker queue consumer.**
+  `workers/docpipeline/main.py` still just pings Redis — needs a job
+  consumer that pulls ingestion jobs and writes back via the API.
+- **TenderRequirement-backed compliance generation.**
+- **WhatsApp consent gate on `RemindersService`.**
+- **`AuditInterceptor` coverage for retention approve/deny + persistent
+  RetentionAction flow.**
+- **Daily retention scheduler** — Cloud Scheduler trigger now that the
+  deploy infra is in place.
+- **k6 load tests** (PRD SLO P95 < 2s @ 50 VU).
+- **Playwright E2E + axe-core** for full a11y coverage (Lighthouse
+  against `/login` is a thin sliver).
+- **DPO contact registry + authority-notification dispatch.**
+- **Runtime residency enforcement** at the LLM/OCR call site (depends
+  on the worker queue gaining an external provider).
+- **Interface-token DI refactor + `as any` cleanup** — still open
+  (carried from P10.1 / P11.1).

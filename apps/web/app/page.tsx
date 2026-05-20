@@ -2,15 +2,18 @@ import type { JSX } from 'react';
 import {
   apiFetch,
   ApiError,
+  loadCurrentUser,
   type DocumentSummary,
   type Tender,
 } from '../lib/api';
 import { dashboardFixture } from '../lib/fixtures';
-import { DEFAULT_LOCALE, t } from '../lib/i18n';
+import { t } from '../lib/i18n';
+import { resolveServerLocale } from '../lib/locale';
 import { KPIStrip } from '../components/KPIStrip';
 import { TenderFeed } from '../components/TenderFeed';
 import { TaskRail } from '../components/TaskRail';
 import { ExpiryRadar } from '../components/ExpiryRadar';
+import { AppShell } from '../components/AppShell';
 
 interface DashboardLoad {
   tenders: Tender[];
@@ -34,25 +37,25 @@ async function loadDashboard(): Promise<DashboardLoad> {
 }
 
 export default async function Home(): Promise<JSX.Element> {
-  const locale = DEFAULT_LOCALE;
-  const { tenders, expiring, loadError } = await loadDashboard();
-
-  // Critical-tasks rail still uses fixture shapes until P10 persists
-  // the compliance matrix items (see docs/audit-findings.md §3).
+  const [user, locale, dash] = await Promise.all([
+    loadCurrentUser().catch(() => null),
+    resolveServerLocale(),
+    loadDashboard(),
+  ]);
+  const { tenders, expiring, loadError } = dash;
   const criticalTasks = dashboardFixture.criticalTasks;
 
   const kpis = {
     openTenders: tenders.length,
-    bidReady: tenders.filter((t) => t.status === 'ready').length,
+    bidReady: tenders.filter((tender) => tender.status === 'ready').length,
     criticalGaps: criticalTasks.filter((c) => c.risk === 'critical').length,
     expiringDocs: expiring.length,
   };
 
   return (
-    <main>
-      <header className="app-header">
-        <h1>{t('appName', locale)}</h1>
-        <p className="muted">{t('dashboard', locale)}</p>
+    <AppShell locale={locale} user={user}>
+      <header className="page-header">
+        <h1>{t('dashboard', locale)}</h1>
       </header>
       {loadError && (
         <p role="alert" className="form-error">
@@ -61,12 +64,33 @@ export default async function Home(): Promise<JSX.Element> {
       )}
       <KPIStrip kpis={kpis} locale={locale} />
       <div className="grid-2">
-        <TenderFeed tenders={tenders} locale={locale} />
+        {tenders.length === 0 ? (
+          <section className="panel empty">
+            <h2>{t('tenderFeed', locale)}</h2>
+            <p className="muted">{t('emptyTenders', locale)}</p>
+          </section>
+        ) : (
+          <TenderFeed tenders={tenders} locale={locale} />
+        )}
         <div className="stack">
-          <TaskRail tasks={criticalTasks} locale={locale} />
-          <ExpiryRadar docs={expiring} locale={locale} />
+          {criticalTasks.length === 0 ? (
+            <section className="panel empty">
+              <h2>{t('taskRail', locale)}</h2>
+              <p className="muted">{t('emptyTasks', locale)}</p>
+            </section>
+          ) : (
+            <TaskRail tasks={criticalTasks} locale={locale} />
+          )}
+          {expiring.length === 0 ? (
+            <section className="panel empty">
+              <h2>{t('expiryRadar', locale)}</h2>
+              <p className="muted">{t('emptyExpiring', locale)}</p>
+            </section>
+          ) : (
+            <ExpiryRadar docs={expiring} locale={locale} />
+          )}
         </div>
       </div>
-    </main>
+    </AppShell>
   );
 }

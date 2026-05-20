@@ -1,7 +1,14 @@
 import type { JSX } from 'react';
 import { notFound } from 'next/navigation';
-import { apiFetch, ApiError, type Tender } from '../../../lib/api';
-import { DEFAULT_LOCALE, t } from '../../../lib/i18n';
+import {
+  apiFetch,
+  ApiError,
+  loadCurrentUser,
+  type Tender,
+} from '../../../lib/api';
+import { t } from '../../../lib/i18n';
+import { resolveServerLocale } from '../../../lib/locale';
+import { AppShell } from '../../../components/AppShell';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,25 +29,33 @@ export default async function TenderWorkspace({
   params: Promise<{ id: string }>;
 }): Promise<JSX.Element> {
   const { id } = await params;
-  const tender = await loadTender(id);
+  const [tender, user, locale] = await Promise.all([
+    loadTender(id),
+    loadCurrentUser().catch(() => null),
+    resolveServerLocale(),
+  ]);
   if (!tender) {
     notFound();
   }
-  const locale = DEFAULT_LOCALE;
   return (
-    <main>
-      <a href="/" className="muted">← {t('dashboard', locale)}</a>
+    <AppShell locale={locale} user={user}>
+      <a href="/" className="muted breadcrumb">
+        ← {t('dashboard', locale)}
+      </a>
       <h1>{tender.title}</h1>
       <div className="meta-row">
-        <span>{t('status', locale)}: {tender.status}</span>
+        <span>
+          {t('status', locale)}: {tender.status}
+        </span>
         <span className="muted">source: {tender.source}</span>
       </div>
       <section className="panel">
         <h2>{t('taskRail', locale)}</h2>
         <p className="muted">
-          Compliance matrix + vault wired in P10 (persistence phase).
+          Compliance matrix + vault wired in P10/P11 (persistence + audit).
+          UI table follows in P12b.
         </p>
       </section>
-    </main>
+    </AppShell>
   );
 }
