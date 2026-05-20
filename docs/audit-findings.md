@@ -613,3 +613,101 @@ retention scheduler) lands as P12b. No regressions.
   on the worker queue gaining an external provider).
 - **Interface-token DI refactor + `as any` cleanup** — still open
   (carried from P10.1 / P11.1).
+
+## 14. P12b result — Ingestion + Etimad + retention scheduler (2026‑05‑20)
+
+P12b closes nearly every remaining PRD-fidelity deferral from §13:
+ingestion pipeline (the biggest single PRD feature), Etimad notice
+adapter, persistent compliance requirements, consent-gated reminders,
+audit-trailed retention destruction with a daily sweep, and a k6 /
+Playwright bedrock for the testing-strategy doc. No regressions.
+
+### Closed by P12b
+- **IngestionJob schema + 4-row API surface.** New `IngestionJob` model
+  (kind / status / payload / result / attempts / claimedBy + indexes
+  on org + status + kind). Migration `20260520000002_p12b_ingestion`
+  adds it on top of the `0001_init` baseline. Endpoints:
+  `POST /ingestions` (user, audited), `GET /ingestions[?status&kind]`,
+  `GET /ingestions/:id`, `POST /webhooks/inbound/email` (shared-token
+  gated), `GET /ingestions/next-job` + `POST /ingestions/:id/complete`
+  + `POST /ingestions/:id/fail` (worker channel via `WORKER_API_TOKEN`
+  with `crypto.timingSafeEqual` comparison). Prisma claim uses
+  `SELECT ... FOR UPDATE SKIP LOCKED` so two workers can't grab the
+  same job.
+- **Worker queue consumer (`workers/docpipeline`).** Stdlib-only HTTP
+  client + ingest consumer loop. `WORKER_MODE=ingest` (default) polls
+  + claims + processes + writes back; `WORKER_MODE=heartbeat` keeps
+  the legacy Phase-0 Redis ping for backward compatibility.
+  Exponential backoff on API errors up to 60s.
+- **Etimad adapter.** Pure deterministic parser
+  (`workers/docpipeline/src/docpipeline/etimad.py`) — no LLM, no
+  network. Extracts title (Arabic prefix or first line), tender
+  number, and per-section requirements (legal/financial/technical/
+  admin/other) from Etimad-flavoured notice text. 8 unit tests cover
+  Arabic + English layouts, bullets vs numbered lists, mixed input,
+  section-block scoping, fail-safe categorisation, and determinism.
+- **TenderRequirement consumed by compliance (closes audit §11
+  deferral).** `GET/POST /tenders/:id/requirements`
+  (class-validator). `ComplianceMatrixService.generateAndPersist`
+  falls back to persisted `TenderRequirement` rows when callers omit
+  the request body, so the worker→requirement→matrix flow now closes
+  end-to-end. Explicit body still wins (caller intent overrides).
+- **WhatsApp consent gate.** `RemindersService.sendWhatsAppForSubject(...)`
+  consults the `ConsentLedger` and refuses to send unless the
+  `(subjectEmail, 'whatsapp_reminders')` pair has a granted-and-not-
+  withdrawn event in the tenant's org. Default-deny + idempotent
+  per ref + tenant-scoped. Legacy boolean-gated `sendWhatsAppNudge`
+  retained for back-compat.
+- **RetentionAction persistence + audit-trailed approve/deny.**
+  `RetentionActionPersistenceService` wraps the new
+  `RetentionAction` repo with separation-of-duties enforcement
+  (approver ≠ requestor) and writes `retention.destroy.requested`/
+  `retention.approved`/`retention.denied` audit events. Endpoints:
+  `GET/POST /retention-actions`, `POST /:id/approve`, `POST /:id/deny`,
+  `POST /sweep` (owner-only).
+- **Daily retention scheduler.** `@nestjs/schedule` cron (02:00
+  Asia/Riyadh) iterates all orgs, calls `svc.sweep(org, system-user)`,
+  which converts every retention-policy-elapsed document with no
+  in-flight RetentionAction into a `pending destroy` row. Opt-in via
+  `RETENTION_SCHEDULER_ENABLED=true` so dev/test don't accidentally
+  enqueue. Production deploys augment with a Cloud Scheduler HTTP
+  trigger to `POST /retention-actions/sweep` (the in-process cron is
+  the dev fallback / sanity check).
+- **k6 load + Playwright E2E foundations.** `tests/load/k6/dashboard.js`
+  encodes the PRD SLO (P95 < 2000ms at 50 VU). `apps/web/e2e/`
+  brings up Playwright with `@axe-core/playwright`; one happy-path
+  test asserts the unauth-redirect, RTL stamping, login form
+  visibility, **zero critical/serious WCAG 2.1 AA violations**, and
+  locale toggle persistence. Documented run recipes in
+  `tests/load/README.md` and `apps/web/e2e/README.md`.
+
+### Tests added at P12b (all green)
+- API jest unit: **149/149** (was 135 at P12a). 14 new: 4 consent-gated
+  reminder cases + 8 retention-action-service cases + 2
+  TenderRequirement-auto-load cases on `ComplianceMatrixService`.
+- Worker pytest: **36/36** (was 22 at P12a). 14 new: 8 Etimad parser +
+  6 consumer process_one (happy-path, empty queue, unknown kind,
+  kind-filter, body vs text payload). Ruff clean.
+- Web vitest: 18/18 (unchanged); Playwright E2E suite committed (2
+  cases) — runs locally; CI integration deferred until staging URL.
+
+### Gate evidence
+- API tsc clean · jest **149/149 in 7.0s** · integration suite still
+  skip-clean locally (no Docker), full green expected on CI
+- Web tsc clean · vitest **18/18** · `next build` clean
+- Python ruff clean · pytest **36/36 in 0.05s**
+
+### Knowingly deferred to a future iteration (P12c / P13)
+- **CI lanes for k6 + Playwright.** Scripts + configs are committed;
+  jobs need a staging URL (no GCP project provisioned yet). The
+  testing-strategy.md plan lists this as the natural pre-launch gate.
+- **Cloud Scheduler HTTP trigger** for the retention sweep — the
+  in-process cron + manual endpoint cover the dev/sanity path;
+  Cloud Scheduler config lands when the deploy infra is applied.
+- **DPO contact registry + authority-notification dispatch.** Schema
+  ready (RetentionAction + AuditEvent); the actual SDAIA email/template
+  is an org-config concern.
+- **Runtime residency enforcement** at the LLM/OCR call site — `residency.ts`
+  still env-only; we don't have an external LLM call site yet.
+- **Interface-token DI refactor + `as any` cleanup** — carried from
+  P10.1 / P11.1. Nothing breaks; it's a hygiene cleanup.

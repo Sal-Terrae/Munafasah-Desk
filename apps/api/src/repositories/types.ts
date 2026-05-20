@@ -218,3 +218,29 @@ export interface UpdateRetentionActionData {
   decidedAt?: Date | null;
   executedAt?: Date | null;
 }
+
+// ---------- P12b ingestion ----------
+
+export type IngestionKind = 'etimad' | 'upload' | 'email' | 'link';
+export type IngestionStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed';
+
+export interface CreateIngestionJobData {
+  organizationId: string;
+  kind: IngestionKind;
+  payload: Prisma.JsonValue;
+  createdBy?: string | null;
+}
+
+export interface UpdateIngestionJobData {
+  status?: IngestionStatus;
+  result?: Prisma.JsonValue;
+  errorMessage?: string | null;
+  claimedBy?: string | null;
+  claimedAt?: Date | null;
+  completedAt?: Date | null;
+  attempts?: number;
+}

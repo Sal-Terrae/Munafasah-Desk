@@ -11,6 +11,9 @@ import { ConsentLedgerService } from './consent-ledger.service';
 import { ConsentLedgerController } from './consent-ledger.controller';
 import { TenderAccessService } from './tender-access.service';
 import { TenderAccessController } from './tender-access.controller';
+import { RetentionActionPersistenceService } from './retention-action.service';
+import { RetentionActionController } from './retention-action.controller';
+import { RetentionScheduler } from './retention.scheduler';
 
 @Module({
   imports: [AuthModule, AuditModule, RepositoriesModule],
@@ -20,12 +23,15 @@ import { TenderAccessController } from './tender-access.controller';
     DataSubjectService,
     ConsentLedgerService,
     TenderAccessService,
+    RetentionActionPersistenceService,
+    RetentionScheduler,
   ],
   controllers: [
     PdplController,
     DataSubjectController,
     ConsentLedgerController,
     TenderAccessController,
+    RetentionActionController,
   ],
   exports: [
     RetentionService,
@@ -33,6 +39,7 @@ import { TenderAccessController } from './tender-access.controller';
     DataSubjectService,
     ConsentLedgerService,
     TenderAccessService,
+    RetentionActionPersistenceService,
   ],
 })
 export class PdplModule {}

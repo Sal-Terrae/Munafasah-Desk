@@ -40,6 +40,8 @@ model Organization {
   dataSubjectRequests DataSubjectRequest[]
   tenderAccesses      TenderAccess[]
   retentionActions    RetentionAction[]
+  // P12b — ingestion
+  ingestionJobs       IngestionJob[]
 }
 
 model User {
@@ -323,6 +325,31 @@ model TenderAccess {
   @@unique([userId, tenderId])
   @@index([organizationId])
   @@index([tenderId])
+}
+
+// P12b — Worker queue: the API enqueues by inserting rows; the Python
+// worker polls + atomically claims them. DB-backed rather than a
+// managed broker so the system stays portable across local/cloud.
+model IngestionJob {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  kind           String       // 'etimad' | 'upload' | 'email' | 'link'
+  status         String       @default("pending") // pending | processing | completed | failed
+  payload        Json
+  result         Json?
+  errorMessage   String?
+  attempts       Int          @default(0)
+  claimedBy      String?
+  claimedAt      DateTime?
+  completedAt    DateTime?
+  createdBy      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([kind, status])
 }
 
 // Audit-trailed destruction request lifecycle. Replaces the in-memory

@@ -4,6 +4,7 @@ import { ComplianceService } from './compliance.service';
 import { TenderService } from '../tender/tender.service';
 import { FakeComplianceMatrixRepository } from '../repositories/fake/fake-compliance-matrix.repository';
 import { FakeComplianceItemRepository } from '../repositories/fake/fake-compliance-item.repository';
+import { FakeTenderRequirementRepository } from '../repositories/fake/fake-tender-requirement.repository';
 import { FakeTenderRepository } from '../repositories/fake/fake-tender.repository';
 
 describe('ComplianceMatrixService (persisting wrapper)', () => {
@@ -11,12 +12,14 @@ describe('ComplianceMatrixService (persisting wrapper)', () => {
   let svc: ComplianceMatrixService;
   let matrices: FakeComplianceMatrixRepository;
   let items: FakeComplianceItemRepository;
+  let tenderReqs: FakeTenderRequirementRepository;
   let tenderRepo: FakeTenderRepository;
   let tenderId: string;
 
   beforeEach(async () => {
     matrices = new FakeComplianceMatrixRepository();
     items = new FakeComplianceItemRepository();
+    tenderReqs = new FakeTenderRequirementRepository();
     tenderRepo = new FakeTenderRepository();
     const tenders = new TenderService(tenderRepo);
     svc = new ComplianceMatrixService(
@@ -24,6 +27,7 @@ describe('ComplianceMatrixService (persisting wrapper)', () => {
       tenders,
       matrices,
       items,
+      tenderReqs,
     );
     const t = await tenderRepo.create({
       title: 'T',
@@ -110,9 +114,70 @@ describe('ComplianceMatrixService (persisting wrapper)', () => {
   });
 
   it('listForTender returns versions newest-first', async () => {
-    await svc.generateAndPersist(tenderId, ORG, [], []);
-    await svc.generateAndPersist(tenderId, ORG, [], []);
+    await svc.generateAndPersist(
+      tenderId,
+      ORG,
+      [{ id: 'r1', text: 'r', category: 'legal', critical: false }],
+      [],
+    );
+    await svc.generateAndPersist(
+      tenderId,
+      ORG,
+      [{ id: 'r1', text: 'r', category: 'legal', critical: false }],
+      [],
+    );
     const list = await svc.listForTender(tenderId, ORG);
     expect(list.map((m) => m.version)).toEqual([2, 1]);
+  });
+
+  it('auto-loads persisted TenderRequirement rows when input is empty', async () => {
+    await tenderReqs.create({
+      tenderId,
+      organizationId: ORG,
+      category: 'legal',
+      text: 'Valid CR',
+      risk: 'critical',
+    });
+    await tenderReqs.create({
+      tenderId,
+      organizationId: ORG,
+      category: 'financial',
+      text: 'Bid bond',
+      risk: 'critical',
+    });
+    const { matrix, items: created } = await svc.generateAndPersist(
+      tenderId,
+      ORG,
+      [], // empty → fall back to persisted rows
+      [],
+    );
+    expect(matrix.version).toBe(1);
+    expect(created).toHaveLength(2);
+    const texts = created.map((i) => i.requirementText).sort();
+    expect(texts).toEqual(['Bid bond', 'Valid CR']);
+  });
+
+  it('explicit requirements still win over persisted rows', async () => {
+    await tenderReqs.create({
+      tenderId,
+      organizationId: ORG,
+      category: 'legal',
+      text: 'Persistent one',
+    });
+    const { items: created } = await svc.generateAndPersist(
+      tenderId,
+      ORG,
+      [
+        {
+          id: 'r-adhoc',
+          text: 'Ad-hoc requirement',
+          category: 'technical',
+          critical: false,
+        },
+      ],
+      [],
+    );
+    expect(created).toHaveLength(1);
+    expect(created[0].requirementText).toBe('Ad-hoc requirement');
   });
 });

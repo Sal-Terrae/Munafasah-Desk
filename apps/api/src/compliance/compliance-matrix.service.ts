@@ -2,8 +2,10 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ComplianceMatrix, ComplianceItem } from '@prisma/client';
 import { ComplianceMatrixPrismaRepository } from '../repositories/prisma/compliance-matrix.prisma.repository';
 import { ComplianceItemPrismaRepository } from '../repositories/prisma/compliance-item.prisma.repository';
+import { TenderRequirementPrismaRepository } from '../repositories/prisma/tender-requirement.prisma.repository';
 import { IComplianceMatrixRepository } from '../repositories/interfaces/compliance-matrix.repository.interface';
 import { IComplianceItemRepository } from '../repositories/interfaces/compliance-item.repository.interface';
+import { ITenderRequirementRepository } from '../repositories/interfaces/tender-requirement.repository.interface';
 import { TenderService } from '../tender/tender.service';
 import {
   ComplianceRequirement,
@@ -31,9 +33,14 @@ export class ComplianceMatrixService {
     private readonly matrices: IComplianceMatrixRepository,
     @Inject(ComplianceItemPrismaRepository)
     private readonly items: IComplianceItemRepository,
+    @Inject(TenderRequirementPrismaRepository)
+    private readonly tenderRequirements: ITenderRequirementRepository,
   ) {}
 
-  /** Compute a new versioned matrix and persist it + its items atomically. */
+  /** Compute a new versioned matrix and persist it + its items atomically.
+   *  When `requirements` is empty, falls back to the persisted
+   *  `TenderRequirement` rows for the tender (P12b — closes audit §11
+   *  "TenderRequirement-backed compliance" deferral). */
   async generateAndPersist(
     tenderId: string,
     organizationId: string,
@@ -42,6 +49,20 @@ export class ComplianceMatrixService {
     opts: GenerateAndPersistOpts = {},
   ): Promise<PersistedMatrixWithItems> {
     await this.tenders.get(tenderId, organizationId); // tenant guard
+
+    let effectiveRequirements = requirements;
+    if (effectiveRequirements.length === 0) {
+      const persisted = await this.tenderRequirements.findAllForTender(
+        tenderId,
+        organizationId,
+      );
+      effectiveRequirements = persisted.map((r) => ({
+        id: r.id,
+        text: r.text,
+        category: r.category,
+        critical: r.risk === 'critical',
+      }));
+    }
 
     const latest = await this.matrices.latestForTender(
       tenderId,
@@ -52,7 +73,7 @@ export class ComplianceMatrixService {
     // Pure compute first — deterministic, no side effects.
     const computed = this.compute.generateMatrix(
       tenderId,
-      requirements,
+      effectiveRequirements,
       vault,
       { ...opts, previousVersion: nextVersion - 1 },
     );
