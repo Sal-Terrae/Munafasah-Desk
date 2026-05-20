@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Audited } from '../audit/audit.decorator';
 import { TenderService, TenderSource } from './tender.service';
 
 interface IntakeBody {
@@ -54,6 +55,13 @@ export class TenderController {
   }
 
   @Patch(':id/status')
+  @Audited({
+    action: 'tender.update_status',
+    entityType: 'Tender',
+    entityIdFrom: 'param',
+    entityIdKey: 'id',
+    detailsFrom: ['status'],
+  })
   updateStatus(
     @Param('id') id: string,
     @Body() body: { status: string },
@@ -63,6 +71,12 @@ export class TenderController {
   }
 
   @Delete(':id')
+  @Audited({
+    action: 'tender.delete',
+    entityType: 'Tender',
+    entityIdFrom: 'param',
+    entityIdKey: 'id',
+  })
   remove(
     @Param('id') id: string,
     @Req() req: { user?: { organizationId: string } },

@@ -20,34 +20,40 @@ enum UserRole {
 }
 
 model Organization {
-  id                 String              @id @default(uuid())
-  name               String
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  users              User[]
-  clientCompanies    ClientCompany[]
-  tenders            Tender[]
-  auditEvents        AuditEvent[]
-  clientDocuments    ClientDocument[]
-  complianceMatrices ComplianceMatrix[]
-  complianceItems    ComplianceItem[]
-  tenderRequirements TenderRequirement[]
-  evidenceLinks      EvidenceLink[]
-  tasks              Task[]
-  submissionPacks    SubmissionPack[]
+  id                  String               @id @default(uuid())
+  name                String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  users               User[]
+  clientCompanies     ClientCompany[]
+  tenders             Tender[]
+  auditEvents         AuditEvent[]
+  clientDocuments     ClientDocument[]
+  complianceMatrices  ComplianceMatrix[]
+  complianceItems     ComplianceItem[]
+  tenderRequirements  TenderRequirement[]
+  evidenceLinks       EvidenceLink[]
+  tasks               Task[]
+  submissionPacks     SubmissionPack[]
+  // P11 — PDPL surface
+  consentEvents       ConsentEvent[]
+  dataSubjectRequests DataSubjectRequest[]
+  tenderAccesses      TenderAccess[]
+  retentionActions    RetentionAction[]
 }
 
 model User {
-  id             String       @id @default(uuid())
-  email          String       @unique
+  id             String         @id @default(uuid())
+  email          String         @unique
   name           String
   password       String?
   role           UserRole
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   auditEvents    AuditEvent[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  tenderAccesses TenderAccess[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model ClientCompany {
@@ -74,6 +80,7 @@ model Tender {
   requirements    TenderRequirement[]
   tasks           Task[]
   submissionPacks SubmissionPack[]
+  accesses        TenderAccess[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 }
@@ -100,17 +107,23 @@ model ClientDocument {
   @@index([clientCompanyId])
 }
 
+// PDPL: audit must survive user erasure. userId is nullable + SetNull
+// so erasing a User pseudonymises the audit row instead of removing it.
 model AuditEvent {
   id             String       @id @default(uuid())
   action         String
   entityType     String
   entityId       String
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   timestamp      DateTime     @default(now())
   details        Json?
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([userId])
 }
 
 // Versioned compliance matrix per tender. (tenderId, version) is unique.
@@ -232,4 +245,106 @@ model SubmissionPack {
 
   @@unique([tenderId, version])
   @@index([organizationId])
+}
+
+// =================================================================
+// P11 — PDPL surface
+// =================================================================
+
+// Consent ledger. Records every grant/withdraw event for a (subject,
+// purpose) pair. The current state is the most-recent event. Subjects
+// are addressed by email (PDPL Art. 4 — natural person identifier);
+// `subjectUserId` is only set when the subject has an account.
+model ConsentEvent {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subjectEmail   String
+  subjectUserId  String?
+  purpose        String       // 'whatsapp_reminders' | 'data_processing' | ...
+  state          String       // 'granted' | 'withdrawn'
+  source         String       @default("api")
+  recordedBy     String?      // user id of admin recording, null for self-service
+  details        Json?
+  recordedAt     DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([subjectEmail])
+  @@index([purpose])
+}
+
+// PDPL data-subject rights workflow (Art. 12–17).
+// type ∈ access | erasure | rectification. Each request goes through
+// pending → approved/denied. Access requests are completed by
+// attaching a snapshot to `payload`. Erasure is executed asynchronously
+// by an admin (no auto-erasure to avoid accidental data loss).
+model DataSubjectRequest {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           String       // 'access' | 'erasure' | 'rectification'
+  subjectEmail   String
+  status         String       @default("pending") // pending|approved|denied|completed
+  requestedBy    String?
+  requestedAt    DateTime     @default(now())
+  decidedBy      String?
+  decidedAt      DateTime?
+  completedAt    DateTime?
+  notes          String?
+  payload        Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([subjectEmail])
+  @@index([status])
+}
+
+// Per-tender access list. The org-wide UserRole still applies; this
+// adds finer-grained "who can see/edit which tenders" on top. Roles:
+// Owner | Editor | Reviewer | Viewer. The (userId, tenderId) pair is
+// unique so a user has at most one role per tender.
+model TenderAccess {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenderId       String
+  tender         Tender       @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  role           String       // 'Owner' | 'Editor' | 'Reviewer' | 'Viewer'
+  grantedBy      String?
+  grantedAt      DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userId, tenderId])
+  @@index([organizationId])
+  @@index([tenderId])
+}
+
+// Audit-trailed destruction request lifecycle. Replaces the in-memory
+// `RetentionService.requests` map. Approver MUST differ from requestor
+// (separation of duties), enforced at the service layer.
+model RetentionAction {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documentId     String       // ClientDocument id (no FK so audit survives doc delete)
+  action         String       // 'destroy' | 'archive'
+  reason         String
+  requestedBy    String
+  requestedAt    DateTime     @default(now())
+  status         String       @default("pending") // pending|approved|denied|executed
+  decidedBy      String?
+  decidedAt      DateTime?
+  executedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([documentId])
+  @@index([status])
 }

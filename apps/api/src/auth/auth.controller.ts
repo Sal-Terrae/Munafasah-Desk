@@ -49,8 +49,19 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
-  logout(@Res({ passthrough: true }) res: Response): void {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const principal = (
+      req as Request & {
+        user?: { userId: string; organizationId: string };
+      }
+    ).user;
     res.clearCookie(SESSION_COOKIE_NAME, { ...cookieOptions(), maxAge: 0 });
+    if (principal) {
+      await this.auth.logoutAudit(principal);
+    }
   }
 
   @Get('me')

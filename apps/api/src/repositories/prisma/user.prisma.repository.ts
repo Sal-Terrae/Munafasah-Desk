@@ -50,6 +50,25 @@ export class UserPrismaRepository implements IUserRepository {
     return this.prisma.user.findUnique({ where: { id } }) as any;
   }
 
+  async anonymise(
+    id: string,
+    organizationId: string,
+    pseudonymousEmail: string,
+  ) {
+    const result = await this.prisma.user.updateMany({
+      where: { id, organizationId },
+      data: {
+        email: pseudonymousEmail,
+        name: '[erased]',
+        password: null,
+      },
+    });
+    if (result.count === 0) {
+      throw new Error(`User not found or not in organization`);
+    }
+    return this.prisma.user.findUnique({ where: { id } }) as any;
+  }
+
   async delete(id: string, organizationId: string): Promise<boolean> {
     const result = await this.prisma.user.deleteMany({
       where: { id, organizationId },

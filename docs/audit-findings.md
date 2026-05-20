@@ -390,3 +390,124 @@ All gates green; no regressions.
 - **Initial Prisma migration file** — schema is materialized via
   `prisma db push` in tests (and would be locally); first proper
   migration baseline lands with P12 (Cloud Run deploy).
+
+## 12. P11 result — PDPL & audit wiring (2026‑05‑20)
+
+P11 closes audit §4 rows for *Audit log under-used*, *Data subject
+rights missing*, *Consent ledger missing*, *Sensitive-data handling*,
+and bites a meaningful chunk out of *Retention secure destruction*.
+All gates green; no regressions.
+
+### Closed by P11
+- **Audit FK survives erasure (PDPL).** `AuditEvent.userId` is now
+  nullable + `onDelete: SetNull`. Deleting a user pseudonymises every
+  audit row they wrote instead of deleting them — the audit trail is
+  no longer collateral damage of an erasure request. Verified by
+  `audit-event.prisma.it.spec.ts`.
+- **`AuditInterceptor` + `@Audited({...})` decorator.** A global Nest
+  interceptor (registered via `APP_INTERCEPTOR` from `AuditModule`)
+  writes one `AuditEvent` after each tagged endpoint succeeds. Body
+  keys captured into `details` are filtered through a redactor for
+  secret-shaped names. Wired on:
+  - `PATCH /tenders/:id/status` (`tender.update_status`)
+  - `DELETE /tenders/:id` (`tender.delete`)
+  - `PATCH /documents/:id/state` (`document.set_state`)
+  - `POST /tenders/:id/compliance-matrices` (`compliance_matrix.generate`)
+  - `PATCH /compliance-items/:id` (`compliance_item.update`)
+  - `POST /compliance-items/:id/evidence-links` (`evidence_link.create`)
+  - `DELETE /compliance-items/:id/evidence-links/:documentId` (`evidence_link.delete`)
+- **Auth audit trail.** `AuthService` records `auth.login.success`,
+  `auth.login.failure` (known-email only — unknown emails go to the
+  structured logger to avoid PII enumeration via the audit table),
+  and `auth.logout`.
+- **Data-subject rights (PDPL Art. 12–17).** New `ConsentEvent`,
+  `DataSubjectRequest`, and `RetentionAction` tables + repositories.
+  `DataSubjectService` + `/data-subject-requests` endpoints implement:
+  - `POST` create a request (`access | erasure | rectification`)
+  - `GET` list (filterable by status), `GET :id`
+  - `POST :id/approve` and `:id/deny` — admin-only via `RolesGuard`,
+    with **separation of duties** (approver ≠ requestor)
+  - `POST :id/execute` —
+    - **access**: builds a snapshot (`user` + their `auditEvents` +
+      `consentEvents` + previous `DataSubjectRequests`) and attaches it
+      to `payload`
+    - **erasure**: anonymises `AuditEvent.userId` (SetNull),
+      pseudonymises `ConsentEvent.subjectEmail`, calls
+      `IUserRepository.anonymise(...)` to overwrite the user's
+      `email`/`name`/`password`. The user row survives so TenderAccess
+      and other FKs remain referentially intact.
+- **Consent ledger.** `ConsentLedgerService` + `/consent-events`
+  endpoints (record grant/withdraw, list for subject, `GET /check`
+  returns the current state). **Default deny** — `hasActiveConsent`
+  returns `false` when no event exists.
+- **Per-tender RBAC.** `TenderAccess` (`Owner | Editor | Reviewer |
+  Viewer`) + `TenderAccessService` (grant / revoke / `hasAtLeast` with
+  ordered role rank / `require` that throws **NotFound** rather than
+  Forbidden so the existence of a tender isn't disclosed to outsiders).
+  Endpoints: `GET/POST /tenders/:tenderId/access`, `DELETE
+  /tenders/:tenderId/access/:userId` (admin-only via `RolesGuard`).
+- **Sensitivity-class ACL on document reads.** `apps/api/src/pdpl/sensitivity.ts`
+  defines `canReadSensitivity(role, sensitivity)`; `DocumentVaultService.get`
+  consults it and lies with **404** for unauthorised readers. Default
+  matrix: Owner + DocController for `high`; +BidManager for `medium`;
+  every role for `low`; unknown classes fail-safe to `high`.
+
+### Tests added at P11 (all green)
+- API jest **135/135** (was 102 at P10). New units across:
+  - `audit.interceptor.spec.ts` — passthrough when untagged, writes on
+    success, no write on handler error, no write without principal,
+    response/param/body entity-id sources, body redaction, swallows
+    audit-write failures.
+  - `data-subject.service.spec.ts` — create, malformed-email reject,
+    approve from non-pending throws, separation of duties on approve
+    and execute, access snapshot shape + payload persistence, erasure
+    nullifies audit FK + pseudonymises user/consent rows, cross-tenant
+    `get` returns NotFound.
+  - `consent-ledger.service.spec.ts` — record + audit emission,
+    rejects empty inputs, default-deny on missing event, withdraw
+    overrides grant, tenant scoping.
+  - `tender-access.service.spec.ts` — grant + audit, invalid role
+    rejected, no double-grant, role ladder, `require` 404 on miss,
+    revoke idempotency, tenant scoping.
+  - `sensitivity.spec.ts` — every-role-reads-low, Owner/DocController-only
+    for high, fail-safe-to-high for unknown classes.
+  - `auth.service.spec.ts` gained 3 cases for login success / known-email
+    failure / unknown-email failure audit semantics.
+- API jest integration **8 suites / 28 cases** (was 4/14 at P10). Adds:
+  - `audit-event.prisma.it.spec.ts` — SetNull preserves audit on user
+    delete; tenant-scoped findForUser; anonymiseUser scope.
+  - `consent-event.prisma.it.spec.ts` — grant/withdraw history,
+    findCurrent semantics, tenant scoping, anonymiseSubject.
+  - `tender-access.prisma.it.spec.ts` — `@@unique([userId, tenderId])`,
+    cascade on user delete, cascade on tender delete, revoke idempotency.
+  - `data-subject-request.prisma.it.spec.ts` — full lifecycle
+    pending→approved→completed, findAll status filter, cross-tenant
+    denial, findForSubject scoping.
+
+### Gate evidence
+- API tsc clean · jest unit **135/135 in 6.8s** · jest integration
+  28 skipped locally (no Docker) in 5.6s — full green expected on CI
+- Web tsc clean · vitest 18/18 · `next build` clean
+- Python ruff clean · pytest 22/22
+
+### Knowingly deferred to P11.1 / P12
+- **Daily retention scheduler.** `RetentionAction` table + repo are in
+  place; the cron/Cloud Run Scheduler trigger that walks expired
+  documents and creates `RetentionAction(action=destroy,
+  status=pending)` rows lands with P12 (deploy infra).
+- **Runtime residency enforcement.** `apps/api/src/pdpl/residency.ts`
+  still env-only; there is no `LLMProvider` in this codebase yet to gate.
+  Folds in when the worker pipeline gains its LLM call site.
+- **DPO contact registry + authority-notification dispatch.**
+  `IncidentService` knows when notification is required (72h rule) but
+  has no recipient and no transport. Schema + dispatcher land with the
+  same P12 infra slice that brings the scheduler.
+- **WhatsApp consent gate on `RemindersService`.** The ledger is ready
+  (`hasActiveConsent`); wiring the existing `RemindersService.send` to
+  consult it before sending is a one-line follow-up (P11.1).
+- **Audit interceptor coverage for retention approve/deny.**
+  `RetentionService` is still the in-memory pure evaluator; the
+  persistent `RetentionAction` repo + audited approve/deny flow (with
+  separation of duties wired to the new repo) is the P11.1 follow-up.
+- **Interface-token DI refactor + `as any` cleanup** — still open
+  (carried from P10.1).

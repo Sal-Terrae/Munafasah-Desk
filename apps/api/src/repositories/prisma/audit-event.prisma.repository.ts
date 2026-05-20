@@ -16,12 +16,32 @@ export class AuditEventPrismaRepository
         action: data.action,
         entityType: data.entityType,
         entityId: data.entityId,
-        user: { connect: { id: data.userId } },
+        ...(data.userId === null
+          ? {}
+          : { user: { connect: { id: data.userId } } }),
         organization: { connect: { id: data.organizationId } },
         ...(data.details === undefined
           ? {}
           : { details: data.details as Prisma.InputJsonValue }),
       },
     });
+  }
+
+  async findForUser(userId: string, organizationId: string) {
+    return this.prisma.auditEvent.findMany({
+      where: { userId, organizationId },
+      orderBy: { timestamp: 'asc' },
+    });
+  }
+
+  async anonymiseUser(
+    userId: string,
+    organizationId: string,
+  ): Promise<number> {
+    const result = await this.prisma.auditEvent.updateMany({
+      where: { userId, organizationId },
+      data: { userId: null },
+    });
+    return result.count;
   }
 }

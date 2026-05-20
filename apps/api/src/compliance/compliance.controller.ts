@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Audited } from '../audit/audit.decorator';
 import { TenderService } from '../tender/tender.service';
 import { DocumentVaultService } from '../document-vault/document-vault.service';
 import {
@@ -41,6 +42,13 @@ export class ComplianceController {
   // + derived tasks + export gate) so the frontend contract is unchanged
   // while a new versioned row is durably stored.
   @Post()
+  @Audited({
+    action: 'compliance_matrix.generate',
+    entityType: 'Tender',
+    entityIdFrom: 'param',
+    entityIdKey: 'id',
+    detailsFrom: ['overriddenRequirementIds'],
+  })
   async generate(
     @Param('id') tenderId: string,
     @Body() body: GenerateMatrixBody,

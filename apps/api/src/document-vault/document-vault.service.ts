@@ -1,7 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { ClientDocument } from '@prisma/client';
+import { ClientDocument, UserRole } from '@prisma/client';
 import { ClientDocumentPrismaRepository } from '../repositories/prisma/client-document.prisma.repository';
 import { IClientDocumentRepository } from '../repositories/interfaces/client-document.repository.interface';
+import { canReadSensitivity } from '../pdpl/sensitivity';
 
 export interface RegisterDocumentInput {
   filename: string;
@@ -42,9 +43,16 @@ export class DocumentVaultService {
   async get(
     id: string,
     organizationId: string,
+    readerRole?: UserRole,
   ): Promise<ClientDocument> {
     const doc = await this.repo.findById(id, organizationId);
     if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+    // Sensitivity-class ACL: lie with 404 to non-readers so the
+    // existence of a sensitive document isn't disclosed by the
+    // status code (audit-findings.md §4 sensitive-data row).
+    if (readerRole && !canReadSensitivity(readerRole, doc.sensitivity)) {
       throw new NotFoundException('Document not found');
     }
     return doc;

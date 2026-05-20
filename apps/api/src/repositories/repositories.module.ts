@@ -10,6 +10,10 @@ import { ComplianceMatrixPrismaRepository } from './prisma/compliance-matrix.pri
 import { ComplianceItemPrismaRepository } from './prisma/compliance-item.prisma.repository';
 import { TenderRequirementPrismaRepository } from './prisma/tender-requirement.prisma.repository';
 import { EvidenceLinkPrismaRepository } from './prisma/evidence-link.prisma.repository';
+import { ConsentEventPrismaRepository } from './prisma/consent-event.prisma.repository';
+import { DataSubjectRequestPrismaRepository } from './prisma/data-subject-request.prisma.repository';
+import { TenderAccessPrismaRepository } from './prisma/tender-access.prisma.repository';
+import { RetentionActionPrismaRepository } from './prisma/retention-action.prisma.repository';
 
 @Module({
   providers: [
@@ -24,6 +28,10 @@ import { EvidenceLinkPrismaRepository } from './prisma/evidence-link.prisma.repo
     ComplianceItemPrismaRepository,
     TenderRequirementPrismaRepository,
     EvidenceLinkPrismaRepository,
+    ConsentEventPrismaRepository,
+    DataSubjectRequestPrismaRepository,
+    TenderAccessPrismaRepository,
+    RetentionActionPrismaRepository,
   ],
   exports: [
     PrismaService,
@@ -37,6 +45,10 @@ import { EvidenceLinkPrismaRepository } from './prisma/evidence-link.prisma.repo
     ComplianceItemPrismaRepository,
     TenderRequirementPrismaRepository,
     EvidenceLinkPrismaRepository,
+    ConsentEventPrismaRepository,
+    DataSubjectRequestPrismaRepository,
+    TenderAccessPrismaRepository,
+    RetentionActionPrismaRepository,
   ],
 })
 export class RepositoriesModule {}

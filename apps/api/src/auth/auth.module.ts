@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { RepositoriesModule } from '../repositories/repositories.module';
+import { AuditModule } from '../audit/audit.module';
 import { requireJwtSecret } from '../common/jwt-secret';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -11,6 +12,7 @@ import { RolesGuard } from './roles.guard';
 @Module({
   imports: [
     RepositoriesModule,
+    AuditModule,
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => ({

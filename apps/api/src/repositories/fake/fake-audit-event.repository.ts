@@ -8,7 +8,8 @@ import { CreateAuditEventData } from '../types';
 export class FakeAuditEventRepository
   implements IAuditEventRepository
 {
-  // Internal storage is append-only. Exposed only through create.
+  // Internal storage is append-only. Exposed only through create + the
+  // append-only anonymisation (PDPL right of erasure).
   private records = new Map<string, AuditEvent>();
 
   async create(data: CreateAuditEventData): Promise<AuditEvent> {
@@ -24,5 +25,28 @@ export class FakeAuditEventRepository
     };
     this.records.set(event.id, event);
     return event;
+  }
+
+  async findForUser(
+    userId: string,
+    organizationId: string,
+  ): Promise<AuditEvent[]> {
+    return Array.from(this.records.values()).filter(
+      (e) => e.userId === userId && e.organizationId === organizationId,
+    );
+  }
+
+  async anonymiseUser(
+    userId: string,
+    organizationId: string,
+  ): Promise<number> {
+    let count = 0;
+    for (const e of this.records.values()) {
+      if (e.userId === userId && e.organizationId === organizationId) {
+        e.userId = null;
+        count++;
+      }
+    }
+    return count;
   }
 }

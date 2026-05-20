@@ -63,6 +63,22 @@ export class FakeUserRepository implements IUserRepository {
     return user;
   }
 
+  async anonymise(
+    id: string,
+    organizationId: string,
+    pseudonymousEmail: string,
+  ): Promise<User> {
+    const user = this.records.get(id);
+    if (!user || user.organizationId !== organizationId) {
+      throw new Error('User not found or not in organization');
+    }
+    user.email = pseudonymousEmail;
+    user.name = '[erased]';
+    user.password = null;
+    user.updatedAt = new Date();
+    return user;
+  }
+
   async delete(id: string, organizationId: string): Promise<boolean> {
     const user = this.records.get(id);
     if (!user || user.organizationId !== organizationId) {

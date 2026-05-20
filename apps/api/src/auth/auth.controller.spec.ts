@@ -3,7 +3,9 @@ import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@prisma/client';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuditService } from '../audit/audit.service';
 import { FakeUserRepository } from '../repositories/fake/fake-user.repository';
+import { FakeAuditEventRepository } from '../repositories/fake/fake-audit-event.repository';
 import { SESSION_COOKIE_NAME } from './jwt.strategy';
 
 function makeResponse() {
@@ -23,7 +25,8 @@ describe('AuthController (cookie session)', () => {
   beforeEach(async () => {
     users = new FakeUserRepository();
     jwt = new JwtService({ secret });
-    svc = new AuthService(users, jwt);
+    const audit = new AuditService(new FakeAuditEventRepository());
+    svc = new AuthService(users, jwt, audit);
     ctrl = new AuthController(svc);
     await users.create({
       email: 'owner@acme.test',
@@ -67,9 +70,9 @@ describe('AuthController (cookie session)', () => {
     expect(res.cookie).not.toHaveBeenCalled();
   });
 
-  it('logout clears the session cookie', () => {
+  it('logout clears the session cookie', async () => {
     const res = makeResponse();
-    ctrl.logout(res as never);
+    await ctrl.logout({} as never, res as never);
     expect(res.clearCookie).toHaveBeenCalledWith(
       SESSION_COOKIE_NAME,
       expect.objectContaining({ httpOnly: true, maxAge: 0 }),

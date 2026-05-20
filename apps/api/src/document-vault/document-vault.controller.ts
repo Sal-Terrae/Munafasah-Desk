@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Audited } from '../audit/audit.decorator';
 import {
   DocumentVaultService,
   RegisterDocumentInput,
@@ -49,12 +50,22 @@ export class DocumentVaultController {
   @Get(':id')
   get(
     @Param('id') id: string,
-    @Req() req: { user?: { organizationId: string } },
+    @Req()
+    req: {
+      user?: { organizationId: string; role?: import('@prisma/client').UserRole };
+    },
   ) {
-    return this.svc.get(id, this.orgId(req));
+    return this.svc.get(id, this.orgId(req), req.user?.role);
   }
 
   @Patch(':id/state')
+  @Audited({
+    action: 'document.set_state',
+    entityType: 'ClientDocument',
+    entityIdFrom: 'param',
+    entityIdKey: 'id',
+    detailsFrom: ['state'],
+  })
   setState(
     @Param('id') id: string,
     @Body()

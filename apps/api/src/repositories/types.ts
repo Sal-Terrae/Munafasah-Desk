@@ -67,7 +67,9 @@ export interface CreateAuditEventData {
   action: string;
   entityType: string;
   entityId: string;
-  userId: string;
+  // userId is nullable so erased users' audit rows can be retained
+  // with the FK pseudonymised (P11 PDPL fix).
+  userId: string | null;
   organizationId: string;
   details?: Prisma.JsonValue;
 }
@@ -131,4 +133,88 @@ export interface CreateEvidenceLinkData {
 
 export interface UpdateEvidenceLinkData {
   note?: string | null;
+}
+
+// ---------- P11 PDPL entities ----------
+
+export type ConsentState = 'granted' | 'withdrawn';
+
+export interface CreateConsentEventData {
+  organizationId: string;
+  subjectEmail: string;
+  subjectUserId?: string | null;
+  purpose: string;
+  state: ConsentState;
+  source?: string;
+  recordedBy?: string | null;
+  details?: Prisma.JsonValue;
+}
+
+export type DataSubjectRequestType =
+  | 'access'
+  | 'erasure'
+  | 'rectification';
+
+export type DataSubjectRequestStatus =
+  | 'pending'
+  | 'approved'
+  | 'denied'
+  | 'completed';
+
+export interface CreateDataSubjectRequestData {
+  organizationId: string;
+  type: DataSubjectRequestType;
+  subjectEmail: string;
+  requestedBy?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateDataSubjectRequestData {
+  status?: DataSubjectRequestStatus;
+  decidedBy?: string | null;
+  decidedAt?: Date | null;
+  completedAt?: Date | null;
+  notes?: string | null;
+  payload?: Prisma.JsonValue;
+}
+
+export type TenderAccessRole =
+  | 'Owner'
+  | 'Editor'
+  | 'Reviewer'
+  | 'Viewer';
+
+export interface CreateTenderAccessData {
+  organizationId: string;
+  userId: string;
+  tenderId: string;
+  role: TenderAccessRole;
+  grantedBy?: string | null;
+}
+
+export interface UpdateTenderAccessData {
+  role?: TenderAccessRole;
+}
+
+export type RetentionActionType = 'destroy' | 'archive';
+
+export type RetentionActionStatus =
+  | 'pending'
+  | 'approved'
+  | 'denied'
+  | 'executed';
+
+export interface CreateRetentionActionData {
+  organizationId: string;
+  documentId: string;
+  action: RetentionActionType;
+  reason: string;
+  requestedBy: string;
+}
+
+export interface UpdateRetentionActionData {
+  status?: RetentionActionStatus;
+  decidedBy?: string | null;
+  decidedAt?: Date | null;
+  executedAt?: Date | null;
 }

@@ -2,18 +2,24 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@prisma/client';
 import { AuthService } from './auth.service';
+import { AuditService } from '../audit/audit.service';
 import { FakeUserRepository } from '../repositories/fake/fake-user.repository';
+import { FakeAuditEventRepository } from '../repositories/fake/fake-audit-event.repository';
 
 describe('AuthService', () => {
   const secret = 'test-secret';
   let users: FakeUserRepository;
   let jwt: JwtService;
+  let audit: AuditService;
+  let auditRepo: FakeAuditEventRepository;
   let svc: AuthService;
 
   beforeEach(async () => {
     users = new FakeUserRepository();
     jwt = new JwtService({ secret });
-    svc = new AuthService(users, jwt);
+    auditRepo = new FakeAuditEventRepository();
+    audit = new AuditService(auditRepo);
+    svc = new AuthService(users, jwt, audit);
     await users.create({
       email: 'owner@acme.test',
       name: 'Owner',
@@ -51,5 +57,49 @@ describe('AuthService', () => {
 
   it('login throws on bad credentials', async () => {
     await expect(svc.login('owner@acme.test', 'bad')).rejects.toThrow();
+  });
+
+  it('login.success writes an audit event', async () => {
+    await svc.login('owner@acme.test', 'pw-correct');
+    const events = await auditRepo.findForUser(
+      (await users.findByEmail('owner@acme.test'))!.id,
+      'org-1',
+    );
+    expect(events.some((e) => e.action === 'auth.login.success')).toBe(true);
+  });
+
+  it('login.failure for a known email writes an audit event with userId=null', async () => {
+    await expect(svc.login('owner@acme.test', 'wrong')).rejects.toThrow();
+    // userId is nullified, so it does NOT appear under findForUser; but
+    // it is recorded — assert by inspecting the repository's recent rows.
+    const u = await users.findByEmail('owner@acme.test');
+    const fromUser = await auditRepo.findForUser(u!.id, 'org-1');
+    expect(fromUser.some((e) => e.action === 'auth.login.failure')).toBe(
+      false,
+    );
+    // Search the repo's anonymised rows via re-record:
+    const all = (
+      auditRepo as unknown as {
+        records: Map<string, { action: string; userId: string | null }>;
+      }
+    ).records;
+    const failures = Array.from(all.values()).filter(
+      (r) => r.action === 'auth.login.failure',
+    );
+    expect(failures.length).toBe(1);
+    expect(failures[0].userId).toBeNull();
+  });
+
+  it('login.failure for an unknown email writes NO audit event (avoid PII leak)', async () => {
+    await expect(svc.login('ghost@nope.test', 'anything')).rejects.toThrow();
+    const all = (
+      auditRepo as unknown as {
+        records: Map<string, { action: string }>;
+      }
+    ).records;
+    const failures = Array.from(all.values()).filter(
+      (r) => r.action === 'auth.login.failure',
+    );
+    expect(failures).toHaveLength(0);
   });
 });

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, IsDateString, MaxLength } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Audited } from '../audit/audit.decorator';
 import { ComplianceMatrixService } from './compliance-matrix.service';
 import { EvidenceLinkService } from './evidence-link.service';
 
@@ -64,6 +65,13 @@ export class ComplianceItemController {
   }
 
   @Patch(':id')
+  @Audited({
+    action: 'compliance_item.update',
+    entityType: 'ComplianceItem',
+    entityIdFrom: 'param',
+    entityIdKey: 'id',
+    detailsFrom: ['status', 'owner', 'risk', 'dueDate'],
+  })
   async update(
     @Param('id') id: string,
     @Body() body: UpdateComplianceItemBody,
@@ -91,6 +99,13 @@ export class ComplianceItemController {
   }
 
   @Post(':id/evidence-links')
+  @Audited({
+    action: 'evidence_link.create',
+    entityType: 'ComplianceItem',
+    entityIdFrom: 'param',
+    entityIdKey: 'id',
+    detailsFrom: ['documentId'],
+  })
   async link(
     @Param('id') itemId: string,
     @Body() body: CreateEvidenceLinkBody,
@@ -105,6 +120,12 @@ export class ComplianceItemController {
   }
 
   @Delete(':id/evidence-links/:documentId')
+  @Audited({
+    action: 'evidence_link.delete',
+    entityType: 'ComplianceItem',
+    entityIdFrom: 'param',
+    entityIdKey: 'id',
+  })
   async unlink(
     @Param('id') itemId: string,
     @Param('documentId') documentId: string,
