@@ -16,45 +16,48 @@ import { TenderAccessPrismaRepository } from './prisma/tender-access.prisma.repo
 import { RetentionActionPrismaRepository } from './prisma/retention-action.prisma.repository';
 import { IngestionJobPrismaRepository } from './prisma/ingestion-job.prisma.repository';
 import { DpoContactPrismaRepository } from './prisma/dpo-contact.prisma.repository';
+import {
+  AUDIT_EVENT_REPOSITORY,
+  CLIENT_COMPANY_REPOSITORY,
+  CLIENT_DOCUMENT_REPOSITORY,
+  COMPLIANCE_ITEM_REPOSITORY,
+  COMPLIANCE_MATRIX_REPOSITORY,
+  CONSENT_EVENT_REPOSITORY,
+  DATA_SUBJECT_REQUEST_REPOSITORY,
+  DPO_CONTACT_REPOSITORY,
+  EVIDENCE_LINK_REPOSITORY,
+  INGESTION_JOB_REPOSITORY,
+  ORGANIZATION_REPOSITORY,
+  RETENTION_ACTION_REPOSITORY,
+  TENDER_ACCESS_REPOSITORY,
+  TENDER_REPOSITORY,
+  TENDER_REQUIREMENT_REPOSITORY,
+  USER_REPOSITORY,
+} from './tokens';
+
+const TOKEN_BINDINGS = [
+  { provide: ORGANIZATION_REPOSITORY, useClass: OrganizationPrismaRepository },
+  { provide: USER_REPOSITORY, useClass: UserPrismaRepository },
+  { provide: CLIENT_COMPANY_REPOSITORY, useClass: ClientCompanyPrismaRepository },
+  { provide: TENDER_REPOSITORY, useClass: TenderPrismaRepository },
+  { provide: CLIENT_DOCUMENT_REPOSITORY, useClass: ClientDocumentPrismaRepository },
+  { provide: AUDIT_EVENT_REPOSITORY, useClass: AuditEventPrismaRepository },
+  { provide: COMPLIANCE_MATRIX_REPOSITORY, useClass: ComplianceMatrixPrismaRepository },
+  { provide: COMPLIANCE_ITEM_REPOSITORY, useClass: ComplianceItemPrismaRepository },
+  { provide: TENDER_REQUIREMENT_REPOSITORY, useClass: TenderRequirementPrismaRepository },
+  { provide: EVIDENCE_LINK_REPOSITORY, useClass: EvidenceLinkPrismaRepository },
+  { provide: CONSENT_EVENT_REPOSITORY, useClass: ConsentEventPrismaRepository },
+  { provide: DATA_SUBJECT_REQUEST_REPOSITORY, useClass: DataSubjectRequestPrismaRepository },
+  { provide: TENDER_ACCESS_REPOSITORY, useClass: TenderAccessPrismaRepository },
+  { provide: RETENTION_ACTION_REPOSITORY, useClass: RetentionActionPrismaRepository },
+  { provide: INGESTION_JOB_REPOSITORY, useClass: IngestionJobPrismaRepository },
+  { provide: DPO_CONTACT_REPOSITORY, useClass: DpoContactPrismaRepository },
+];
+
+const TOKENS = TOKEN_BINDINGS.map((b) => b.provide);
 
 @Module({
-  providers: [
-    PrismaService,
-    OrganizationPrismaRepository,
-    UserPrismaRepository,
-    ClientCompanyPrismaRepository,
-    TenderPrismaRepository,
-    ClientDocumentPrismaRepository,
-    AuditEventPrismaRepository,
-    ComplianceMatrixPrismaRepository,
-    ComplianceItemPrismaRepository,
-    TenderRequirementPrismaRepository,
-    EvidenceLinkPrismaRepository,
-    ConsentEventPrismaRepository,
-    DataSubjectRequestPrismaRepository,
-    TenderAccessPrismaRepository,
-    RetentionActionPrismaRepository,
-    IngestionJobPrismaRepository,
-    DpoContactPrismaRepository,
-  ],
-  exports: [
-    PrismaService,
-    OrganizationPrismaRepository,
-    UserPrismaRepository,
-    ClientCompanyPrismaRepository,
-    TenderPrismaRepository,
-    ClientDocumentPrismaRepository,
-    AuditEventPrismaRepository,
-    ComplianceMatrixPrismaRepository,
-    ComplianceItemPrismaRepository,
-    TenderRequirementPrismaRepository,
-    EvidenceLinkPrismaRepository,
-    ConsentEventPrismaRepository,
-    DataSubjectRequestPrismaRepository,
-    TenderAccessPrismaRepository,
-    RetentionActionPrismaRepository,
-    IngestionJobPrismaRepository,
-    DpoContactPrismaRepository,
-  ],
+  providers: [PrismaService, ...TOKEN_BINDINGS],
+  exports: [PrismaService, ...TOKENS],
 })
 export class RepositoriesModule {}

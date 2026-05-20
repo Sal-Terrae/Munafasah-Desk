@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AuditEvent } from '@prisma/client';
-import { AuditEventPrismaRepository } from '../repositories/prisma/audit-event.prisma.repository';
 import { IAuditEventRepository } from '../repositories/interfaces/audit-event.repository.interface';
 import { CreateAuditEventData } from '../repositories/types';
+import { AUDIT_EVENT_REPOSITORY } from '../repositories/tokens';
 
 /**
  * Append-only: the ONLY write path is `record` -> repository.create.
@@ -11,7 +11,7 @@ import { CreateAuditEventData } from '../repositories/types';
 @Injectable()
 export class AuditService {
   constructor(
-    @Inject(AuditEventPrismaRepository)
+    @Inject(AUDIT_EVENT_REPOSITORY)
     private readonly repo: IAuditEventRepository,
   ) {}
 

@@ -1,12 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ClientCompany } from '@prisma/client';
-import { ClientCompanyPrismaRepository } from '../repositories/prisma/client-company.prisma.repository';
 import { IClientCompanyRepository } from '../repositories/interfaces/client-company.repository.interface';
+import { CLIENT_COMPANY_REPOSITORY } from '../repositories/tokens';
 
 @Injectable()
 export class ClientCompanyService {
   constructor(
-    @Inject(ClientCompanyPrismaRepository)
+    @Inject(CLIENT_COMPANY_REPOSITORY)
     private readonly repo: IClientCompanyRepository,
   ) {}
 

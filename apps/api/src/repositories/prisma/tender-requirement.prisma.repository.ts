@@ -68,9 +68,9 @@ export class TenderRequirementPrismaRepository
     if (result.count === 0) {
       throw new Error('TenderRequirement not found or not in organization');
     }
-    return this.prisma.tenderRequirement.findUnique({
+    return this.prisma.tenderRequirement.findUniqueOrThrow({
       where: { id },
-    }) as any;
+    });
   }
 
   async delete(id: string, organizationId: string): Promise<boolean> {

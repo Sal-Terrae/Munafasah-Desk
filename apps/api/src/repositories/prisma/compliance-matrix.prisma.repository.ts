@@ -66,7 +66,7 @@ export class ComplianceMatrixPrismaRepository
     if (result.count === 0) {
       throw new Error('ComplianceMatrix not found or not in organization');
     }
-    return this.prisma.complianceMatrix.findUnique({ where: { id } }) as any;
+    return this.prisma.complianceMatrix.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(id: string, organizationId: string): Promise<boolean> {

@@ -43,7 +43,7 @@ export class TenderPrismaRepository implements ITenderRepository {
     if (result.count === 0) {
       throw new Error(`Tender not found or not in organization`);
     }
-    return this.prisma.tender.findUnique({ where: { id } }) as any;
+    return this.prisma.tender.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(

@@ -47,7 +47,7 @@ export class UserPrismaRepository implements IUserRepository {
     if (result.count === 0) {
       throw new Error(`User not found or not in organization`);
     }
-    return this.prisma.user.findUnique({ where: { id } }) as any;
+    return this.prisma.user.findUniqueOrThrow({ where: { id } });
   }
 
   async anonymise(
@@ -66,7 +66,7 @@ export class UserPrismaRepository implements IUserRepository {
     if (result.count === 0) {
       throw new Error(`User not found or not in organization`);
     }
-    return this.prisma.user.findUnique({ where: { id } }) as any;
+    return this.prisma.user.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(id: string, organizationId: string): Promise<boolean> {

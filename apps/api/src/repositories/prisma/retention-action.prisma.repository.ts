@@ -63,8 +63,8 @@ export class RetentionActionPrismaRepository
     if (result.count === 0) {
       throw new Error('RetentionAction not found or not in organization');
     }
-    return this.prisma.retentionAction.findUnique({
+    return this.prisma.retentionAction.findUniqueOrThrow({
       where: { id },
-    }) as any;
+    });
   }
 }

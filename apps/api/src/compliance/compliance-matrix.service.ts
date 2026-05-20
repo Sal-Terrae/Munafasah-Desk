@@ -1,8 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ComplianceMatrix, ComplianceItem } from '@prisma/client';
-import { ComplianceMatrixPrismaRepository } from '../repositories/prisma/compliance-matrix.prisma.repository';
-import { ComplianceItemPrismaRepository } from '../repositories/prisma/compliance-item.prisma.repository';
-import { TenderRequirementPrismaRepository } from '../repositories/prisma/tender-requirement.prisma.repository';
 import { IComplianceMatrixRepository } from '../repositories/interfaces/compliance-matrix.repository.interface';
 import { IComplianceItemRepository } from '../repositories/interfaces/compliance-item.repository.interface';
 import { ITenderRequirementRepository } from '../repositories/interfaces/tender-requirement.repository.interface';
@@ -13,6 +10,11 @@ import {
   EvidenceDoc,
   GenerateOpts,
 } from './compliance.service';
+import {
+  COMPLIANCE_ITEM_REPOSITORY,
+  COMPLIANCE_MATRIX_REPOSITORY,
+  TENDER_REQUIREMENT_REPOSITORY,
+} from '../repositories/tokens';
 
 export interface GenerateAndPersistOpts extends GenerateOpts {
   /** If true (default), creates a new persisted matrix version. */
@@ -29,11 +31,11 @@ export class ComplianceMatrixService {
   constructor(
     private readonly compute: ComplianceService,
     private readonly tenders: TenderService,
-    @Inject(ComplianceMatrixPrismaRepository)
+    @Inject(COMPLIANCE_MATRIX_REPOSITORY)
     private readonly matrices: IComplianceMatrixRepository,
-    @Inject(ComplianceItemPrismaRepository)
+    @Inject(COMPLIANCE_ITEM_REPOSITORY)
     private readonly items: IComplianceItemRepository,
-    @Inject(TenderRequirementPrismaRepository)
+    @Inject(TENDER_REQUIREMENT_REPOSITORY)
     private readonly tenderRequirements: ITenderRequirementRepository,
   ) {}
 

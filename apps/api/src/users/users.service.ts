@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { UserPrismaRepository } from '../repositories/prisma/user.prisma.repository';
 import { IUserRepository } from '../repositories/interfaces/user.repository.interface';
 import type { PublicUser } from '../auth/auth.service';
+import { USER_REPOSITORY } from '../repositories/tokens';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject(UserPrismaRepository)
+    @Inject(USER_REPOSITORY)
     private readonly repo: IUserRepository,
   ) {}
 

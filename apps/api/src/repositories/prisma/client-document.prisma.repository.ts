@@ -53,7 +53,7 @@ export class ClientDocumentPrismaRepository
     if (result.count === 0) {
       throw new Error(`ClientDocument not found or not in organization`);
     }
-    return this.prisma.clientDocument.findUnique({ where: { id } }) as any;
+    return this.prisma.clientDocument.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(

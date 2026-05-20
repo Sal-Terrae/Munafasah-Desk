@@ -51,7 +51,7 @@ export class EvidenceLinkPrismaRepository implements IEvidenceLinkRepository {
     if (result.count === 0) {
       throw new Error('EvidenceLink not found or not in organization');
     }
-    return this.prisma.evidenceLink.findUnique({ where: { id } }) as any;
+    return this.prisma.evidenceLink.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(id: string, organizationId: string): Promise<boolean> {

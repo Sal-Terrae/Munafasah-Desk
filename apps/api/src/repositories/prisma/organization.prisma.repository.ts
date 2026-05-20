@@ -26,7 +26,7 @@ export class OrganizationPrismaRepository
 
   async update(id: string, data: UpdateOrganizationData) {
     await this.prisma.organization.update({ where: { id }, data });
-    return this.prisma.organization.findUnique({ where: { id } }) as any;
+    return this.prisma.organization.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(id: string): Promise<boolean> {

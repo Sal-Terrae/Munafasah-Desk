@@ -1,8 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ClientDocument, UserRole } from '@prisma/client';
-import { ClientDocumentPrismaRepository } from '../repositories/prisma/client-document.prisma.repository';
 import { IClientDocumentRepository } from '../repositories/interfaces/client-document.repository.interface';
 import { canReadSensitivity } from '../pdpl/sensitivity';
+import { CLIENT_DOCUMENT_REPOSITORY } from '../repositories/tokens';
 
 export interface RegisterDocumentInput {
   filename: string;
@@ -17,7 +17,7 @@ export interface RegisterDocumentInput {
 @Injectable()
 export class DocumentVaultService {
   constructor(
-    @Inject(ClientDocumentPrismaRepository)
+    @Inject(CLIENT_DOCUMENT_REPOSITORY)
     private readonly repo: IClientDocumentRepository,
   ) {}
 

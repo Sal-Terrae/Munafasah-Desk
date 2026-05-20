@@ -45,7 +45,7 @@ export class ClientCompanyPrismaRepository
     if (result.count === 0) {
       throw new Error(`ClientCompany not found or not in organization`);
     }
-    return this.prisma.clientCompany.findUnique({ where: { id } }) as any;
+    return this.prisma.clientCompany.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(

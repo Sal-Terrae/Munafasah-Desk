@@ -1,20 +1,18 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EvidenceLink } from '@prisma/client';
-import { EvidenceLinkPrismaRepository } from '../repositories/prisma/evidence-link.prisma.repository';
-import { ComplianceItemPrismaRepository } from '../repositories/prisma/compliance-item.prisma.repository';
-import { ClientDocumentPrismaRepository } from '../repositories/prisma/client-document.prisma.repository';
 import { IEvidenceLinkRepository } from '../repositories/interfaces/evidence-link.repository.interface';
 import { IComplianceItemRepository } from '../repositories/interfaces/compliance-item.repository.interface';
 import { IClientDocumentRepository } from '../repositories/interfaces/client-document.repository.interface';
+import { CLIENT_DOCUMENT_REPOSITORY, COMPLIANCE_ITEM_REPOSITORY, EVIDENCE_LINK_REPOSITORY } from '../repositories/tokens';
 
 @Injectable()
 export class EvidenceLinkService {
   constructor(
-    @Inject(EvidenceLinkPrismaRepository)
+    @Inject(EVIDENCE_LINK_REPOSITORY)
     private readonly links: IEvidenceLinkRepository,
-    @Inject(ComplianceItemPrismaRepository)
+    @Inject(COMPLIANCE_ITEM_REPOSITORY)
     private readonly items: IComplianceItemRepository,
-    @Inject(ClientDocumentPrismaRepository)
+    @Inject(CLIENT_DOCUMENT_REPOSITORY)
     private readonly documents: IClientDocumentRepository,
   ) {}
 

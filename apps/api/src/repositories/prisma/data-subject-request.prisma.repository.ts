@@ -77,8 +77,8 @@ export class DataSubjectRequestPrismaRepository
         'DataSubjectRequest not found or not in organization',
       );
     }
-    return this.prisma.dataSubjectRequest.findUnique({
+    return this.prisma.dataSubjectRequest.findUniqueOrThrow({
       where: { id },
-    }) as any;
+    });
   }
 }

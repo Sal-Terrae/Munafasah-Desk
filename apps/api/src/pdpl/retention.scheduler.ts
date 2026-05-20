@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { OrganizationPrismaRepository } from '../repositories/prisma/organization.prisma.repository';
 import { IOrganizationRepository } from '../repositories/interfaces/organization.repository.interface';
 import { RetentionActionPersistenceService } from './retention-action.service';
+import { ORGANIZATION_REPOSITORY } from '../repositories/tokens';
 
 /**
  * Daily retention sweep. Runs at 02:00 in the API instance's local time.
@@ -17,7 +17,7 @@ export class RetentionScheduler {
   private readonly systemUserId = 'system:retention-scheduler';
 
   constructor(
-    @Inject(OrganizationPrismaRepository)
+    @Inject(ORGANIZATION_REPOSITORY)
     private readonly orgs: IOrganizationRepository,
     private readonly svc: RetentionActionPersistenceService,
   ) {}

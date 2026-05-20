@@ -108,6 +108,6 @@ export class IngestionJobPrismaRepository
     if (result.count === 0) {
       throw new Error('IngestionJob not found or not in organization');
     }
-    return this.prisma.ingestionJob.findUnique({ where: { id } }) as any;
+    return this.prisma.ingestionJob.findUniqueOrThrow({ where: { id } });
   }
 }

@@ -11,19 +11,21 @@ import {
   DataSubjectRequest,
   User,
 } from '@prisma/client';
-import { UserPrismaRepository } from '../repositories/prisma/user.prisma.repository';
 import { IUserRepository } from '../repositories/interfaces/user.repository.interface';
-import { AuditEventPrismaRepository } from '../repositories/prisma/audit-event.prisma.repository';
 import { IAuditEventRepository } from '../repositories/interfaces/audit-event.repository.interface';
-import { ConsentEventPrismaRepository } from '../repositories/prisma/consent-event.prisma.repository';
 import { IConsentEventRepository } from '../repositories/interfaces/consent-event.repository.interface';
-import { DataSubjectRequestPrismaRepository } from '../repositories/prisma/data-subject-request.prisma.repository';
 import { IDataSubjectRequestRepository } from '../repositories/interfaces/data-subject-request.repository.interface';
 import { AuditService } from '../audit/audit.service';
 import {
   DataSubjectRequestStatus,
   DataSubjectRequestType,
 } from '../repositories/types';
+import {
+  AUDIT_EVENT_REPOSITORY,
+  CONSENT_EVENT_REPOSITORY,
+  DATA_SUBJECT_REQUEST_REPOSITORY,
+  USER_REPOSITORY,
+} from '../repositories/tokens';
 
 export interface AccessSnapshot {
   subjectEmail: string;
@@ -40,13 +42,13 @@ export interface AccessSnapshot {
 @Injectable()
 export class DataSubjectService {
   constructor(
-    @Inject(DataSubjectRequestPrismaRepository)
+    @Inject(DATA_SUBJECT_REQUEST_REPOSITORY)
     private readonly requests: IDataSubjectRequestRepository,
-    @Inject(UserPrismaRepository)
+    @Inject(USER_REPOSITORY)
     private readonly users: IUserRepository,
-    @Inject(AuditEventPrismaRepository)
+    @Inject(AUDIT_EVENT_REPOSITORY)
     private readonly auditRepo: IAuditEventRepository,
-    @Inject(ConsentEventPrismaRepository)
+    @Inject(CONSENT_EVENT_REPOSITORY)
     private readonly consents: IConsentEventRepository,
     private readonly audit: AuditService,
   ) {}

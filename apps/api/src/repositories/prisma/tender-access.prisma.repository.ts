@@ -64,7 +64,7 @@ export class TenderAccessPrismaRepository
     if (result.count === 0) {
       throw new Error('TenderAccess not found or not in organization');
     }
-    return this.prisma.tenderAccess.findUnique({ where: { id } }) as any;
+    return this.prisma.tenderAccess.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(id: string, organizationId: string): Promise<boolean> {

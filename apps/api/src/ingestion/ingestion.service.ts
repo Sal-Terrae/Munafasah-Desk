@@ -5,13 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import type { Prisma, IngestionJob } from '@prisma/client';
-import { IngestionJobPrismaRepository } from '../repositories/prisma/ingestion-job.prisma.repository';
 import { IIngestionJobRepository } from '../repositories/interfaces/ingestion-job.repository.interface';
 import { AuditService } from '../audit/audit.service';
 import {
   IngestionKind,
   IngestionStatus,
 } from '../repositories/types';
+import { INGESTION_JOB_REPOSITORY } from '../repositories/tokens';
 
 export interface EnqueueInput {
   organizationId: string;
@@ -23,7 +23,7 @@ export interface EnqueueInput {
 @Injectable()
 export class IngestionService {
   constructor(
-    @Inject(IngestionJobPrismaRepository)
+    @Inject(INGESTION_JOB_REPOSITORY)
     private readonly repo: IIngestionJobRepository,
     private readonly audit: AuditService,
   ) {}

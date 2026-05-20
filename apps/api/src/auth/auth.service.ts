@@ -2,10 +2,10 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { UserPrismaRepository } from '../repositories/prisma/user.prisma.repository';
 import { IUserRepository } from '../repositories/interfaces/user.repository.interface';
 import { AuditService } from '../audit/audit.service';
 import { logEvent } from '../observability/logger';
+import { USER_REPOSITORY } from '../repositories/tokens';
 
 export interface PublicUser {
   id: string;
@@ -28,7 +28,7 @@ function toPublic(user: User): PublicUser {
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(UserPrismaRepository)
+    @Inject(USER_REPOSITORY)
     private readonly users: IUserRepository,
     private readonly jwt: JwtService,
     private readonly audit: AuditService,

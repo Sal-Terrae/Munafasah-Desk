@@ -1,14 +1,14 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Tender } from '@prisma/client';
-import { TenderPrismaRepository } from '../repositories/prisma/tender.prisma.repository';
 import { ITenderRepository } from '../repositories/interfaces/tender.repository.interface';
+import { TENDER_REPOSITORY } from '../repositories/tokens';
 
 export type TenderSource = 'manual' | 'upload' | 'email' | 'link';
 
 @Injectable()
 export class TenderService {
   constructor(
-    @Inject(TenderPrismaRepository)
+    @Inject(TENDER_REPOSITORY)
     private readonly repo: ITenderRepository,
   ) {}
 

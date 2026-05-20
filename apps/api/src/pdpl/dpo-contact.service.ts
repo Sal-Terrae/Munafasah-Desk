@@ -5,11 +5,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DpoContact } from '@prisma/client';
-import { DpoContactPrismaRepository } from '../repositories/prisma/dpo-contact.prisma.repository';
 import { IDpoContactRepository } from '../repositories/interfaces/dpo-contact.repository.interface';
 import { AuditService } from '../audit/audit.service';
 import { Incident, IncidentService } from './incident.service';
 import { UpsertDpoContactData } from '../repositories/types';
+import { DPO_CONTACT_REPOSITORY } from '../repositories/tokens';
 
 export interface NotificationDispatchRecord {
   delivered: boolean;          // false: pending org-level SMTP infra
@@ -22,7 +22,7 @@ export interface NotificationDispatchRecord {
 @Injectable()
 export class DpoContactService {
   constructor(
-    @Inject(DpoContactPrismaRepository)
+    @Inject(DPO_CONTACT_REPOSITORY)
     private readonly repo: IDpoContactRepository,
     private readonly audit: AuditService,
     private readonly incidents: IncidentService,

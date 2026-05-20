@@ -4,10 +4,10 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ConsentEvent } from '@prisma/client';
-import { ConsentEventPrismaRepository } from '../repositories/prisma/consent-event.prisma.repository';
 import { IConsentEventRepository } from '../repositories/interfaces/consent-event.repository.interface';
 import { AuditService } from '../audit/audit.service';
 import { ConsentState } from '../repositories/types';
+import { CONSENT_EVENT_REPOSITORY } from '../repositories/tokens';
 
 export interface RecordConsentInput {
   subjectEmail: string;
@@ -22,7 +22,7 @@ export interface RecordConsentInput {
 @Injectable()
 export class ConsentLedgerService {
   constructor(
-    @Inject(ConsentEventPrismaRepository)
+    @Inject(CONSENT_EVENT_REPOSITORY)
     private readonly repo: IConsentEventRepository,
     private readonly audit: AuditService,
   ) {}

@@ -5,9 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ClientDocument, RetentionAction } from '@prisma/client';
-import { RetentionActionPrismaRepository } from '../repositories/prisma/retention-action.prisma.repository';
 import { IRetentionActionRepository } from '../repositories/interfaces/retention-action.repository.interface';
-import { ClientDocumentPrismaRepository } from '../repositories/prisma/client-document.prisma.repository';
 import { IClientDocumentRepository } from '../repositories/interfaces/client-document.repository.interface';
 import { AuditService } from '../audit/audit.service';
 import { RetentionService } from './retention.service';
@@ -15,13 +13,17 @@ import {
   RetentionActionStatus,
   RetentionActionType,
 } from '../repositories/types';
+import {
+  CLIENT_DOCUMENT_REPOSITORY,
+  RETENTION_ACTION_REPOSITORY,
+} from '../repositories/tokens';
 
 @Injectable()
 export class RetentionActionPersistenceService {
   constructor(
-    @Inject(RetentionActionPrismaRepository)
+    @Inject(RETENTION_ACTION_REPOSITORY)
     private readonly repo: IRetentionActionRepository,
-    @Inject(ClientDocumentPrismaRepository)
+    @Inject(CLIENT_DOCUMENT_REPOSITORY)
     private readonly documents: IClientDocumentRepository,
     private readonly policy: RetentionService,
     private readonly audit: AuditService,

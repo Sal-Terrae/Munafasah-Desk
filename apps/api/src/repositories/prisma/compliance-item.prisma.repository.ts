@@ -73,7 +73,7 @@ export class ComplianceItemPrismaRepository
     if (result.count === 0) {
       throw new Error('ComplianceItem not found or not in organization');
     }
-    return this.prisma.complianceItem.findUnique({ where: { id } }) as any;
+    return this.prisma.complianceItem.findUniqueOrThrow({ where: { id } });
   }
 
   async delete(id: string, organizationId: string): Promise<boolean> {

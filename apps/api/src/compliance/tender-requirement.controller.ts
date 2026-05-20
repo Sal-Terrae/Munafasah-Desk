@@ -19,9 +19,9 @@ import {
 import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Audited } from '../audit/audit.decorator';
-import { TenderRequirementPrismaRepository } from '../repositories/prisma/tender-requirement.prisma.repository';
 import { ITenderRequirementRepository } from '../repositories/interfaces/tender-requirement.repository.interface';
 import { TenderService } from '../tender/tender.service';
+import { TENDER_REQUIREMENT_REPOSITORY } from '../repositories/tokens';
 
 const RISKS = ['low', 'medium', 'high', 'critical'] as const;
 
@@ -60,7 +60,7 @@ export class CreateRequirementsBody {
 @Controller('tenders/:id/requirements')
 export class TenderRequirementController {
   constructor(
-    @Inject(TenderRequirementPrismaRepository)
+    @Inject(TENDER_REQUIREMENT_REPOSITORY)
     private readonly repo: ITenderRequirementRepository,
     private readonly tenders: TenderService,
   ) {}

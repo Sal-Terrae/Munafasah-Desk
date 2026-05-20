@@ -5,10 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TenderAccess } from '@prisma/client';
-import { TenderAccessPrismaRepository } from '../repositories/prisma/tender-access.prisma.repository';
 import { ITenderAccessRepository } from '../repositories/interfaces/tender-access.repository.interface';
 import { TenderAccessRole } from '../repositories/types';
 import { AuditService } from '../audit/audit.service';
+import { TENDER_ACCESS_REPOSITORY } from '../repositories/tokens';
 
 const ROLE_RANK: Record<TenderAccessRole, number> = {
   Owner: 4,
@@ -20,7 +20,7 @@ const ROLE_RANK: Record<TenderAccessRole, number> = {
 @Injectable()
 export class TenderAccessService {
   constructor(
-    @Inject(TenderAccessPrismaRepository)
+    @Inject(TENDER_ACCESS_REPOSITORY)
     private readonly repo: ITenderAccessRepository,
     private readonly audit: AuditService,
   ) {}
