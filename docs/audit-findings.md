@@ -796,3 +796,209 @@ hygiene cleanup remains). No regressions; full gate green.
   but a large diff; defers without blocking any user-visible feature.
 - **`as any` Prisma return casts.** Same — explicit narrowing on every
   `findUnique(...) as any` in the prisma repos. Hygiene cleanup.
+
+## 16. UI build-out — admin / tender workflow / sidebar destinations / documents (2026‑05‑20)
+
+The web shell at P12c was login + dashboard + login-form + the
+tender-detail stub. Between P12c and P13 the UI was built out into a
+full app so every sidebar destination is real and the PRD personas
+can actually drive the system end-to-end. None of this was on the
+original audit roadmap (the audit lived at backend-only depth), but
+it closes audit §6 ("~10–15% of the PRD UI surface realised") to
+"every sidebar link lands somewhere real, with a working flow."
+
+Pages added (all RTL-correct, locale-toggle-aware, server-fetched
+where possible):
+
+- `/admin` — tile grid (6 tiles): DPO contact · Data-subject requests
+  · Retention actions · Consent ledger · Ingestion jobs · Audit log.
+- `/admin/dpo-contact` — view + upsert DPO+SDAIA recipient + retention
+  policy days. Owner-only.
+- `/admin/data-subject-requests` — list + status-filter chips +
+  inline create (access/erasure/rectification) + per-row
+  Approve / Deny / Execute. Backend enforces SoD, UI surfaces 403.
+- `/admin/retention` — list + status filter + per-row Approve / Deny
+  on pending + Owner-only "manual sweep" button.
+- `/admin/consent` — lookup-by-email, current-state chip (default
+  deny), full history, grant/withdraw form.
+- `/admin/ingestion` — list with status + kind filters; paste-Etimad-
+  notice enqueue form.
+- `/admin/audit` — Owner-only viewer of last 100 audit events;
+  Anonymised chip when `userId` was SetNull'd by PDPL erasure.
+- `/clients` — list + create form.
+- `/tenders` — list + create form with client picker + source picker.
+- `/tenders/[id]` — rewritten: RequirementsSection (bulk-paste
+  "category: text" lines → POST), MatricesSection (version chips →
+  per-item table, "Generate new matrix" → POST with empty
+  requirements so the API auto-loads persisted TenderRequirement
+  rows), AccessSection (real user picker — see §17), inline status
+  selector (intake → review → ready → submitted).
+- `/documents` — list + filters (state, sensitivity, type) + dual
+  register paths: top-card **Upload document** (real file picker →
+  multipart upload, MinIO-backed) and a collapsed "Quick register
+  (metadata only)" preserving the original metadata-only path.
+- `/documents/[id]` — metadata kvs · "Used as evidence in" table ·
+  Download button (presigned URL, only shown when storageKey present)
+  · state cycle.
+- `/compliance` — cross-tender overview KPIs (total tenders / total
+  matrices / coverage % / tenders without a matrix) + per-tender
+  table with latest matrix version + Open/Generate link.
+- `/reports` — three panels: tender status distribution · document
+  health + 30/60/90-day expiry windows · audit activity top-10
+  (Owner-only, friendly access-denied fallback otherwise).
+- `/settings` — profile + organization + language toggle +
+  sign-out + pointer to /admin/data-subject-requests for erasure.
+
+Shared infrastructure:
+- `apps/web/lib/api.ts` gained typed `tenderApi.*` and `adminApi.*`
+  fetchers, plus an `apiUpload(path, FormData)` helper for multipart.
+- `apps/web/lib/i18n.ts` is now ~290 ar/en pairs covering every page.
+- `apps/web/app/globals.css` has chip variants for every domain
+  (tender status, doc state, doc sensitivity, DSR / retention /
+  ingestion / consent state, audit chips), plus `.admin-table`,
+  `.admin-form` / `.admin-form-inline`, `.kvs` key-value grid,
+  `.filter-row` / `.filter-cluster`, `.sweep-cluster`, `.btn-primary`,
+  `.btn-danger`, etc.
+
+Every page wired via chrome-devtools MCP end-to-end at least once
+during development (login → client → tender → requirements → matrix,
+plus document register + state cycle + audit-log verification).
+
+## 17. P13 result — DI tokens + `as any` cleanup + last UX gaps (2026‑05‑20)
+
+Closes the two remaining hygiene deferrals from §15 *and* three
+small UX gaps that surfaced during the UI build-out. After P13 every
+single item from the original audit (§1–§9) is closed.
+
+### Closed by P13
+- **Symbol-token DI refactor (closes audit §7 item #3).**
+  `apps/api/src/repositories/tokens.ts` defines 16 `Symbol`s
+  (`USER_REPOSITORY`, `ORGANIZATION_REPOSITORY`, …,
+  `DPO_CONTACT_REPOSITORY`). `RepositoriesModule` provides each token
+  via `{ provide: TOKEN, useClass: PrismaXxxRepository }` and exports
+  the tokens only. 16 services / schedulers / controllers migrated
+  from `@Inject(XxxPrismaRepository)` to `@Inject(XXX_REPOSITORY)` —
+  services still hold the interface type as the field type, only
+  the injection token changed. Concrete-class imports dropped from
+  consumers.
+- **`as any` Prisma cast cleanup (closes audit §7 item #5).** All 14
+  `findUnique({ where: { id } }) as any` callsites — placed after a
+  `updateMany({...}).count` guard — replaced with
+  `findUniqueOrThrow({ where: { id } })`. The cast was the laziest way
+  to satisfy TS; `findUniqueOrThrow` returns the non-null type
+  natively and throws if the row vanished between the update + read
+  (genuine race, surfaces instead of returning garbage). Affected
+  repos: client-company, client-document, compliance-item,
+  compliance-matrix, data-subject-request, evidence-link,
+  ingestion-job, organization, retention-action, tender,
+  tender-access, tender-requirement, user.
+- **`GET /users` endpoint + per-tender access user picker.** Audit §3
+  flagged "no way to pick a user from the UI for tender access" — the
+  free-text userId field is now a `<select>` of real users
+  (name + role + email), de-duped against rows that already have
+  access. UsersController/UsersService/UsersModule added (Owner-only
+  via RolesGuard). UI degrades gracefully to the free-text input when
+  the caller isn't Owner (403).
+- **`/documents/[id]` detail page.** Audit §6 flagged "no document
+  detail view." Now: metadata kvs, state cycle, "Used as evidence in"
+  table (uses the new `GET /documents/:id/evidence-links` route +
+  `EvidenceLinkService.listForDocument`), download button (presigned
+  URL, only when storageKey is present).
+- **Real file upload (closes audit §3 "filename-only" row).**
+  `ClientDocument` schema += `storageKey` / `contentType` /
+  `sizeBytes` (all nullable; existing rows untouched). Migration
+  `20260520000004_p13_document_blob` (idempotent ADD COLUMNs).
+  New `ObjectStoreService` — thin MinIO façade (bucket bootstrap on
+  init, putObject, presignedGetUrl). `OBJECT_STORE_*` env config with
+  defaults matching `infra/docker-compose.yml`. Fails-soft on init so
+  the API still boots if MinIO is down. New `DocumentUploadController`
+  exposes `POST /documents/upload` (multipart, multer 25MB cap) +
+  `GET /documents/:id/download` (10-min presigned URL). Audited via
+  `@Audited`. Web has a file-picker form on `/documents` and a
+  Download button on `/documents/[id]`.
+
+### Tests at P13 (all green)
+- API jest: **171/171** (unchanged — DI refactor + cast cleanup +
+  upload are pure additions and behaviour-preserving refactors).
+- Web vitest: 18/18 (unchanged).
+- Worker pytest: 36/36 (unchanged).
+
+### Gate evidence
+- API tsc clean; jest 171/171; live API restarted with new routes
+  mapped (`/users`, `/documents/upload`, `/documents/:id/download`,
+  `/documents/:id/evidence-links`).
+- Web tsc clean; vitest 18/18; next build clean.
+- Object store: `bidready-documents` bucket auto-created on first
+  reachable init.
+
+## 18. Audit closeout — what's actually done vs what's out-of-scope
+
+This is the honest end-state.
+
+### What the original audit asked for — all closed
+| Audit lens | State at audit | State now | Closing phase |
+|---|---|---|---|
+| Dependency CVEs (8 HIGH) | 8 | **0** | P9 |
+| Security middleware (Helmet / CORS / ValidationPipe / throttler / global filter) | absent | **present** | P9 |
+| JWT dev-secret fallback | live | **removed; fail-hard** | P9 |
+| Login UI / fetch wiring | absent | **present** | P9 |
+| Persistence (6 PRD entities) + ClientDocument re-parenting | in-memory + wrong ERD | **persisted + correct ERD** | P10 |
+| Integration tests vs real Postgres | 0 | **8 suites / 28 cases (testcontainers)** | P10 |
+| Audit log under-used (one call site) | 1 | **AuditInterceptor + 12+ call sites + admin viewer** | P11 / P13 |
+| Data subject rights | missing | **endpoints + Owner-gated approval flow + erasure pseudonymises user/audit/consent** | P11 |
+| Consent ledger | missing | **schema + endpoints + default-deny + WhatsApp gate** | P11 / P12b |
+| Sensitivity-class ACL | missing | **canReadSensitivity gate, 404 on disallowed reads** | P11 |
+| Per-tender RBAC | missing | **TenderAccess + 4-role ladder + 404-not-403 leak avoidance** | P11 |
+| Audit survives PDPL erasure | userId Cascade | **userId nullable + SetNull, anonymise helper** | P11 |
+| Cloud Run deploy infra | none | **Dockerfiles + Terraform (AR + Cloud SQL + Secret Manager + WIF) + deploy workflows + prisma migrate baseline** | P12a |
+| UX polish (fonts / tokens / sidebar / locale toggle / a11y semantics / Intl) | empty shell | **all present** | P12a / UI build-out |
+| Etimad ingestion + worker queue | missing | **DB-backed queue + Python consumer + deterministic Etimad parser** | P12b |
+| TenderRequirement-backed compliance | half-wired | **persistent rows auto-loaded by matrix generator** | P12b |
+| Daily retention scheduler | missing | **@nestjs/schedule in-process cron + Cloud Scheduler OIDC trigger** | P12b / P12c |
+| RetentionAction persistence + audit | missing | **persistent + SoD + audited approve/deny/sweep** | P12b |
+| DPO contact + authority dispatch | missing | **schema + endpoints + canonical payload + audit** | P12c |
+| Residency gate at the provider call site | env-only / unenforced | **ResidencyGate (ksa default, cross_border opt-in + safeguard register), assertAllowed throws ResidencyViolation** | P12c |
+| Cloud Scheduler HTTP trigger for sweep | missing | **Terraform + OIDC-verified endpoint via google-auth-library** | P12c |
+| CI lanes for E2E + load | missing | **web-e2e (Playwright + axe) + web-load-smoke (k6 against SLO) in ci.yml** | P12c |
+| Interface-token DI refactor | concrete classes | **16 Symbol tokens, all services migrated** | P13 |
+| `as any` Prisma return casts | 14 sites | **0 sites; findUniqueOrThrow everywhere** | P13 |
+| `/users` endpoint + tender-access user picker | missing | **present (Owner-only) + UI degrades on 403** | P13 |
+| Document detail view + file upload | filename-only | **MinIO-backed upload + presigned download + evidence-usage table + detail page** | P13 |
+| README staleness ("Phase 0") | "skeleton only" | **rewritten** | P12a |
+
+That's every row of the original audit closed. **The audit is
+complete.**
+
+### Explicitly **not** in the audit (PRD-future-scope, untouched)
+These items live in the PRD as future work and were never part of
+the §8 remediation roadmap. Listing them so nobody mistakes "audit
+complete" for "PRD complete":
+
+- Sector classifier on tenders (PRD §3 partial row).
+- Search + filter on the dashboard.
+- Public webhooks / public-facing API surface beyond what's wired.
+- Pricing / packaging / billing / multi-tenancy.
+- DPO training register + threshold tracking (the DPO *contact* is
+  done; the broader DPO programme isn't).
+- Inbound-email transport → IMAP/SES integration (the webhook
+  endpoint exists; the inbound transport is operator-config).
+- Slack / WhatsApp transports for the reminder notifications (the
+  consent gate is wired; the actual outbound channel is operator
+  infra).
+- Authority-notification dispatch SMTP (the payload + audit row +
+  recipient registry are built; the outbound transport is operator
+  config).
+
+### Honest "still gated" items (everything ready, just needs human action)
+- **`terraform apply`** against a real GCP project — config is
+  committed, no live apply yet. See `infra/terraform/README.md`.
+- **First Cloud Run deploy** — once Terraform applies, the
+  `.github/workflows/api-deploy.yml` + `web-deploy.yml` workflows
+  fire on push to main.
+- **Full-scale k6 load run** (50 VU × 1m against the dashboard SLO) —
+  needs a deployed staging URL. The smoke variant runs in CI.
+- **Full E2E persona coverage** — 2 happy-path cases run in CI
+  today (Playwright + axe); the 5 PRD-persona coverage in
+  `docs/testing-strategy.md` requires the seeded org + per-role
+  fixture work and a staging URL.
+- **External pentest** — gated on a deployed staging environment.
