@@ -33,3 +33,4 @@ export const RETENTION_ACTION_REPOSITORY = Symbol(
 );
 export const INGESTION_JOB_REPOSITORY = Symbol('IIngestionJobRepository');
 export const DPO_CONTACT_REPOSITORY = Symbol('IDpoContactRepository');
+export const LLM_USAGE_LOG_REPOSITORY = Symbol('ILlmUsageLogRepository');

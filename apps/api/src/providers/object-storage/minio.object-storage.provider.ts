@@ -1,10 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Client as MinioClient } from 'minio';
+import type { IObjectStorageProvider } from './object-storage.provider.interface';
 
 /**
- * Thin object-store façade around a MinIO/S3-compatible bucket.
- *
- * Config (env, all optional in dev — sensible MinIO-docker defaults):
+ * MinIO/S3-compatible driver. Config (env, all optional in dev):
  *   OBJECT_STORE_ENDPOINT       (default: 'localhost')
  *   OBJECT_STORE_PORT           (default: 9000)
  *   OBJECT_STORE_USE_SSL        ('true' | 'false', default: 'false')
@@ -12,18 +11,21 @@ import { Client as MinioClient } from 'minio';
  *   OBJECT_STORE_SECRET_KEY     (default: 'bidready_minio_dev_pw')
  *   OBJECT_STORE_BUCKET         (default: 'bidready-documents')
  *   OBJECT_STORE_REGION         (default: 'me-central-1')
- *   OBJECT_STORE_PUBLIC_HOST    optional; when set, presigned URLs use
- *                               this host instead of OBJECT_STORE_ENDPOINT
- *                               (use when the api runs behind a proxy
- *                               but the browser downloads direct from
- *                               the storage host).
+ *   OBJECT_STORE_PUBLIC_HOST    optional; presigned URLs use this host.
  *
- * The service no-ops gracefully when MinIO isn't reachable so tests
- * and bare-API smoke runs don't fail to boot.
+ * Migrates straight to AWS S3 by setting endpoint to s3.<region>.amazonaws.com
+ * (the minio SDK speaks the S3 wire protocol). For GCS use the GCS S3
+ * interop endpoint or swap this driver for a GCS-native one later.
+ *
+ * No-ops gracefully when the backend isn't reachable so tests and
+ * bare-API smoke runs don't fail to boot.
  */
 @Injectable()
-export class ObjectStoreService implements OnModuleInit {
-  private readonly log = new Logger(ObjectStoreService.name);
+export class MinioObjectStorageProvider
+  implements IObjectStorageProvider, OnModuleInit
+{
+  readonly name = 'minio';
+  private readonly log = new Logger(MinioObjectStorageProvider.name);
   readonly bucket: string;
   private readonly publicClient: MinioClient;
   private readonly internalClient: MinioClient;
@@ -77,8 +79,6 @@ export class ObjectStoreService implements OnModuleInit {
     documentId: string,
     filename: string,
   ): string {
-    // Strip any path separators from the filename and prefix with the
-    // org + doc id so collisions are impossible.
     const safe = filename.replace(/[\\/]/g, '_');
     return `${organizationId}/${documentId}/${safe}`;
   }

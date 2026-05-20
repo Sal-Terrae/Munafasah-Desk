@@ -15,6 +15,10 @@ import { ExportModule } from './export/export.module';
 import { PdplModule } from './pdpl/pdpl.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { UsersModule } from './users/users.module';
+import { LlmModule } from './providers/llm/llm.module';
+import { QueueModule } from './providers/queue/queue.module';
+import { ObjectStorageModule } from './providers/object-storage/object-storage.module';
+import { NotificationModule } from './providers/notifications/notification.module';
 
 @Module({
   imports: [
@@ -39,6 +43,10 @@ import { UsersModule } from './users/users.module';
     PdplModule,
     IngestionModule,
     UsersModule,
+    LlmModule,
+    QueueModule,
+    ObjectStorageModule,
+    NotificationModule,
   ],
   providers: [
     {

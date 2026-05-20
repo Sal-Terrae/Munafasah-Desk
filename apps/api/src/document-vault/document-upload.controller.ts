@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Post,
@@ -15,7 +16,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Audited } from '../audit/audit.decorator';
 import { DocumentVaultService } from './document-vault.service';
-import { ObjectStoreService } from './object-store.service';
+import type { IObjectStorageProvider } from '../providers/object-storage/object-storage.provider.interface';
+import { OBJECT_STORAGE_PROVIDER } from '../providers/object-storage/object-storage.tokens';
 
 interface UploadBody {
   clientCompanyId: string;
@@ -44,7 +46,8 @@ interface MulterFile {
 export class DocumentUploadController {
   constructor(
     private readonly svc: DocumentVaultService,
-    private readonly objectStore: ObjectStoreService,
+    @Inject(OBJECT_STORAGE_PROVIDER)
+    private readonly objectStore: IObjectStorageProvider,
   ) {}
 
   private orgId(req: { user?: { organizationId: string } }): string {

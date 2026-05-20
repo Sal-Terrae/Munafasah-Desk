@@ -44,6 +44,8 @@ model Organization {
   ingestionJobs       IngestionJob[]
   // P12c — DPO contact (one row per org via @@unique on DpoContact.organizationId)
   dpoContact          DpoContact?
+  // P14 — LLM provider usage / cost ledger
+  llmUsageLogs        LlmUsageLog[]
 }
 
 model User {
@@ -399,4 +401,30 @@ model RetentionAction {
   @@index([organizationId])
   @@index([documentId])
   @@index([status])
+}
+
+// P14 — LLM usage ledger. One row per LLM call. Used by BudgetGuard to
+// enforce daily request + cost caps and by ops to audit spend. Tenant-
+// scoped via organizationId. No prompt/response text stored — we keep
+// the surface narrow (cost telemetry only, not a content log).
+model LlmUsageLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tenderId       String?      // optional linkage to a tender
+  provider       String       // 'deepseek' | 'ollama' | 'mock'
+  model          String
+  promptVersion  String?
+  jobType        String?      // 'tender_enrichment' | 'requirement_extract' | ...
+  inputTokens    Int?
+  outputTokens   Int?
+  totalTokens    Int?
+  estimatedCost  Decimal?     @db.Decimal(12, 6)
+  status         String       @default("ok") // ok | error | budget_blocked
+  errorMessage   String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([organizationId, createdAt])
+  @@index([provider])
 }

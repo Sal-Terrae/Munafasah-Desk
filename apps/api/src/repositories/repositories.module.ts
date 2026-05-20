@@ -16,6 +16,7 @@ import { TenderAccessPrismaRepository } from './prisma/tender-access.prisma.repo
 import { RetentionActionPrismaRepository } from './prisma/retention-action.prisma.repository';
 import { IngestionJobPrismaRepository } from './prisma/ingestion-job.prisma.repository';
 import { DpoContactPrismaRepository } from './prisma/dpo-contact.prisma.repository';
+import { LlmUsageLogPrismaRepository } from './prisma/llm-usage-log.prisma.repository';
 import {
   AUDIT_EVENT_REPOSITORY,
   CLIENT_COMPANY_REPOSITORY,
@@ -27,6 +28,7 @@ import {
   DPO_CONTACT_REPOSITORY,
   EVIDENCE_LINK_REPOSITORY,
   INGESTION_JOB_REPOSITORY,
+  LLM_USAGE_LOG_REPOSITORY,
   ORGANIZATION_REPOSITORY,
   RETENTION_ACTION_REPOSITORY,
   TENDER_ACCESS_REPOSITORY,
@@ -52,6 +54,7 @@ const TOKEN_BINDINGS = [
   { provide: RETENTION_ACTION_REPOSITORY, useClass: RetentionActionPrismaRepository },
   { provide: INGESTION_JOB_REPOSITORY, useClass: IngestionJobPrismaRepository },
   { provide: DPO_CONTACT_REPOSITORY, useClass: DpoContactPrismaRepository },
+  { provide: LLM_USAGE_LOG_REPOSITORY, useClass: LlmUsageLogPrismaRepository },
 ];
 
 const TOKENS = TOKEN_BINDINGS.map((b) => b.provide);
