@@ -459,6 +459,31 @@ h2 { font-size: 1.05rem; margin: 0 0 var(--s-3); }
   background: var(--c-surface);
 }
 
+/* Tender status chips — share the doc-state look */
+.chip-intake { background: #dbeafe; color: #1d4ed8; }
+.chip-review { background: var(--c-warn-bg); color: var(--c-warn); }
+.chip-ready  { background: var(--c-ok-bg); color: var(--c-ok); }
+.chip-submitted { background: var(--c-surface-2); color: var(--c-text-muted); }
+
+/* Key-value list used on /settings + /reports */
+.kvs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: var(--s-4);
+  row-gap: var(--s-2);
+}
+.kvs li {
+  display: contents;
+}
+.hr-soft {
+  border: 0;
+  border-top: 1px solid var(--c-border);
+  margin: var(--s-4) 0;
+}
+
 .filter-row {
   display: flex;
   gap: .35rem;

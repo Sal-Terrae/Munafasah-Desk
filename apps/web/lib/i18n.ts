@@ -263,6 +263,57 @@ export const strings = {
     ar: 'لا توجد وثائق بعد. ابدأ بتسجيل وثيقة جديدة.',
     en: 'No documents yet. Register one to get started.',
   },
+  // ----- /compliance -----
+  complianceTitle: { ar: 'الامتثال', en: 'Compliance' },
+  complianceLead: {
+    ar: 'نظرة شاملة على مصفوفات الامتثال لكل العطاءات.',
+    en: 'Cross-tender view of compliance matrix coverage.',
+  },
+  latestVersion: { ar: 'أحدث إصدار', en: 'Latest version' },
+  matrixCount: { ar: 'عدد المصفوفات', en: 'Matrices' },
+  generatedAt: { ar: 'تاريخ التوليد', en: 'Generated at' },
+  noMatrix: { ar: 'لا توجد مصفوفة', en: 'No matrix' },
+  generateNew: { ar: 'إنشاء', en: 'Generate' },
+  // ----- /reports -----
+  reportsTitle: { ar: 'التقارير', en: 'Reports' },
+  reportsLead: {
+    ar: 'مؤشرات الأداء عبر العطاءات والوثائق وسجل التدقيق.',
+    en: 'KPIs across tenders, documents, and the audit log.',
+  },
+  reportTenderStatus: {
+    ar: 'توزّع حالات العطاءات',
+    en: 'Tender status distribution',
+  },
+  reportDocHealth: {
+    ar: 'صحة الوثائق',
+    en: 'Document health',
+  },
+  reportAuditActivity: {
+    ar: 'آخر النشاط (آخر 100 حدث)',
+    en: 'Recent activity (last 100 events)',
+  },
+  expiryWindow: { ar: 'نافذة الانتهاء', en: 'Expiry window' },
+  next30Days: { ar: 'خلال 30 يوماً', en: 'Next 30 days' },
+  next60Days: { ar: 'خلال 60 يوماً', en: 'Next 60 days' },
+  next90Days: { ar: 'خلال 90 يوماً', en: 'Next 90 days' },
+  total: { ar: 'الإجمالي', en: 'Total' },
+  count: { ar: 'العدد', en: 'Count' },
+  topActions: { ar: 'أبرز الإجراءات', en: 'Top actions' },
+  // ----- /settings -----
+  settingsTitle: { ar: 'الإعدادات', en: 'Settings' },
+  settingsLead: {
+    ar: 'الملف الشخصي واللغة وسجل المؤسسة.',
+    en: 'Profile, language, organization.',
+  },
+  profileCard: { ar: 'الملف الشخصي', en: 'Profile' },
+  languageCard: { ar: 'اللغة', en: 'Language' },
+  organizationCard: { ar: 'المؤسسة', en: 'Organization' },
+  accountActionsCard: { ar: 'إجراءات الحساب', en: 'Account actions' },
+  yourErasureLink: {
+    ar: 'لطلب مسح بياناتك، توجّه إلى',
+    en: 'To request erasure of your account, go to',
+  },
+  notSignedIn: { ar: 'غير مسجَّل الدخول', en: 'Not signed in' },
 } satisfies Record<string, Pair>;
 
 export type StringKey = keyof typeof strings;
