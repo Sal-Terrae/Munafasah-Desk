@@ -146,6 +146,152 @@ export async function loadCurrentUser(): Promise<PublicUser | null> {
   }
 }
 
+// ---------- Tender workflow types ----------
+
+export interface ClientCompany {
+  id: string;
+  name: string;
+  organizationId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TenderRequirement {
+  id: string;
+  tenderId: string;
+  organizationId: string;
+  category: string;
+  text: string;
+  risk: 'low' | 'medium' | 'high' | 'critical';
+  owner: string | null;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ComplianceMatrixRow {
+  id: string;
+  tenderId: string;
+  organizationId: string;
+  version: number;
+  status: string;
+  generatedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ComplianceItem {
+  id: string;
+  matrixId: string;
+  organizationId: string;
+  requirementId: string;
+  requirementText: string;
+  category: string;
+  owner: string;
+  risk: 'low' | 'medium' | 'high' | 'critical';
+  status: 'missing' | 'partial' | 'satisfied' | 'overridden';
+  dueDate: string | null;
+}
+
+export interface MatrixWithItems {
+  matrix: ComplianceMatrixRow;
+  items: ComplianceItem[];
+}
+
+export interface TenderAccess {
+  id: string;
+  organizationId: string;
+  userId: string;
+  tenderId: string;
+  role: 'Owner' | 'Editor' | 'Reviewer' | 'Viewer';
+  grantedBy: string | null;
+  grantedAt: string;
+}
+
+export const tenderApi = {
+  listClients: () => apiFetch<ClientCompany[]>('/client-companies'),
+  createClient: (name: string) =>
+    apiFetch<ClientCompany>('/client-companies', {
+      method: 'POST',
+      body: { name },
+    }),
+
+  listTenders: () => apiFetch<Tender[]>('/tenders'),
+  createTender: (input: {
+    title: string;
+    clientCompanyId: string;
+    source?: string;
+  }) => apiFetch<Tender>('/tenders', { method: 'POST', body: input }),
+  getTender: (id: string) =>
+    apiFetch<Tender>(`/tenders/${encodeURIComponent(id)}`),
+  setTenderStatus: (id: string, status: string) =>
+    apiFetch<Tender>(`/tenders/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: { status },
+    }),
+  deleteTender: (id: string) =>
+    apiFetch<void>(`/tenders/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+
+  listRequirements: (tenderId: string) =>
+    apiFetch<TenderRequirement[]>(
+      `/tenders/${encodeURIComponent(tenderId)}/requirements`,
+    ),
+  bulkAddRequirements: (
+    tenderId: string,
+    requirements: Array<{
+      category: string;
+      text: string;
+      risk?: 'low' | 'medium' | 'high' | 'critical';
+      owner?: string | null;
+    }>,
+  ) =>
+    apiFetch<TenderRequirement[]>(
+      `/tenders/${encodeURIComponent(tenderId)}/requirements`,
+      { method: 'POST', body: { requirements } },
+    ),
+
+  listMatrices: (tenderId: string) =>
+    apiFetch<ComplianceMatrixRow[]>(
+      `/tenders/${encodeURIComponent(tenderId)}/compliance-matrices`,
+    ),
+  getMatrix: (tenderId: string, version: number) =>
+    apiFetch<MatrixWithItems>(
+      `/tenders/${encodeURIComponent(tenderId)}/compliance-matrices/${version}`,
+    ),
+  generateMatrix: (tenderId: string) =>
+    apiFetch<{
+      matrix: { id: string; tenderId: string; version: number };
+      tasks: unknown[];
+      exportGate: { allowed: boolean; blocking: unknown[] };
+    }>(`/tenders/${encodeURIComponent(tenderId)}/compliance-matrices`, {
+      method: 'POST',
+      body: { requirements: [] }, // empty → auto-load persisted TenderRequirements
+    }),
+
+  listAccess: (tenderId: string) =>
+    apiFetch<TenderAccess[]>(
+      `/tenders/${encodeURIComponent(tenderId)}/access`,
+    ),
+  grantAccess: (
+    tenderId: string,
+    input: {
+      userId: string;
+      role: 'Owner' | 'Editor' | 'Reviewer' | 'Viewer';
+    },
+  ) =>
+    apiFetch<TenderAccess>(
+      `/tenders/${encodeURIComponent(tenderId)}/access`,
+      { method: 'POST', body: input },
+    ),
+  revokeAccess: (tenderId: string, userId: string) =>
+    apiFetch<{ removed: boolean }>(
+      `/tenders/${encodeURIComponent(tenderId)}/access/${encodeURIComponent(userId)}`,
+      { method: 'DELETE' },
+    ),
+};
+
 // ---------- Admin types ----------
 
 export interface DpoContact {

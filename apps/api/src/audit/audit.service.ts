@@ -18,4 +18,9 @@ export class AuditService {
   record(data: CreateAuditEventData): Promise<AuditEvent> {
     return this.repo.create(data);
   }
+
+  /** Read-only: most-recent events for an organization (admin viewer). */
+  recent(organizationId: string, limit = 100): Promise<AuditEvent[]> {
+    return this.repo.findRecent(organizationId, limit);
+  }
 }

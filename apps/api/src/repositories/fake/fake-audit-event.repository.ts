@@ -36,6 +36,16 @@ export class FakeAuditEventRepository
     );
   }
 
+  async findRecent(
+    organizationId: string,
+    limit: number,
+  ): Promise<AuditEvent[]> {
+    return Array.from(this.records.values())
+      .filter((e) => e.organizationId === organizationId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, Math.max(0, Math.min(limit, 500)));
+  }
+
   async anonymiseUser(
     userId: string,
     organizationId: string,

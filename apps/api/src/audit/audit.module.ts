@@ -1,11 +1,13 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { RepositoriesModule } from '../repositories/repositories.module';
+import { AuthModule } from '../auth/auth.module';
 import { AuditService } from './audit.service';
+import { AuditController } from './audit.controller';
 import { AuditInterceptor } from './audit.interceptor';
 
 @Module({
-  imports: [RepositoriesModule],
+  imports: [RepositoriesModule, forwardRef(() => AuthModule)],
   providers: [
     AuditService,
     {
@@ -13,6 +15,7 @@ import { AuditInterceptor } from './audit.interceptor';
       useClass: AuditInterceptor,
     },
   ],
+  controllers: [AuditController],
   exports: [AuditService],
 })
 export class AuditModule {}

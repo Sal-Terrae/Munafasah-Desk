@@ -34,6 +34,14 @@ export class AuditEventPrismaRepository
     });
   }
 
+  async findRecent(organizationId: string, limit: number) {
+    return this.prisma.auditEvent.findMany({
+      where: { organizationId },
+      orderBy: { timestamp: 'desc' },
+      take: Math.max(0, Math.min(limit, 500)),
+    });
+  }
+
   async anonymiseUser(
     userId: string,
     organizationId: string,
