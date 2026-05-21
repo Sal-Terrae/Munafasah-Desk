@@ -46,6 +46,8 @@ model Organization {
   dpoContact          DpoContact?
   // P14 — LLM provider usage / cost ledger
   llmUsageLogs        LlmUsageLog[]
+  // P15 — DPO training register
+  trainingRecords     DpoTrainingRecord[]
 }
 
 model User {
@@ -427,4 +429,35 @@ model LlmUsageLog {
   @@index([organizationId])
   @@index([organizationId, createdAt])
   @@index([provider])
+}
+
+// P15 — DPO training register. Captures evidence that staff who
+// handle personal data have completed PDPL-relevant training. The
+// subject is either a platform User (userId set) or a snapshot of an
+// external staff member (subjectName/Email always present, even when
+// userId is set — so the row survives a User row erasure).
+model DpoTrainingRecord {
+  id                  String       @id @default(uuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  // Optional link to a platform User. No FK so erasure of the User
+  // doesn't cascade-delete the training evidence — the snapshot
+  // fields below remain.
+  userId              String?
+  subjectName         String
+  subjectEmail        String
+  topic               String       // e.g. 'PDPL Awareness', 'Customer Data Handling'
+  provider            String?      // 'internal' | vendor name
+  completedAt         DateTime
+  validUntil          DateTime?    // null = no expiry tracked
+  evidenceRef         String?      // free-text reference (URL, cert id, file name)
+  evidenceDocumentId  String?      // optional ClientDocument linkage
+  notes               String?
+  recordedBy          String       // User id who entered the record
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, validUntil])
+  @@index([organizationId, subjectEmail])
 }

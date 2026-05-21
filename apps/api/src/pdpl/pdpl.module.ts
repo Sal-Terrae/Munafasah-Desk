@@ -20,6 +20,8 @@ import { RetentionScheduler } from './retention.scheduler';
 import { SchedulerOidcGuard } from './scheduler-oidc.guard';
 import { DpoContactService } from './dpo-contact.service';
 import { DpoContactController } from './dpo-contact.controller';
+import { DpoTrainingService } from './dpo-training.service';
+import { DpoTrainingController } from './dpo-training.controller';
 import { ResidencyGate } from './residency-gate';
 
 @Module({
@@ -34,6 +36,7 @@ import { ResidencyGate } from './residency-gate';
     RetentionScheduler,
     SchedulerOidcGuard,
     DpoContactService,
+    DpoTrainingService,
     ResidencyGate,
   ],
   controllers: [
@@ -44,6 +47,7 @@ import { ResidencyGate } from './residency-gate';
     RetentionActionController,
     RetentionScheduledController,
     DpoContactController,
+    DpoTrainingController,
   ],
   exports: [
     RetentionService,
@@ -53,6 +57,7 @@ import { ResidencyGate } from './residency-gate';
     TenderAccessService,
     RetentionActionPersistenceService,
     DpoContactService,
+    DpoTrainingService,
     ResidencyGate,
   ],
 })

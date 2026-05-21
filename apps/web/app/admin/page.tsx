@@ -44,6 +44,11 @@ const TILES: AdminTile[] = [
     titleKey: 'adminCardAudit',
     descKey: 'adminCardAuditDesc',
   },
+  {
+    href: '/admin/training-register',
+    titleKey: 'adminCardTraining',
+    descKey: 'adminCardTrainingDesc',
+  },
 ];
 
 export default async function AdminLanding(): Promise<JSX.Element> {

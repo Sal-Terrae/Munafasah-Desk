@@ -518,6 +518,20 @@ h2 { font-size: 1.05rem; margin: 0 0 var(--s-3); }
 .btn:disabled,
 .btn-sm:disabled { opacity: .55; cursor: not-allowed; }
 .row-error { color: var(--c-danger); font-size: .8rem; }
+.row-edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  align-items: center;
+}
+.row-edit-form input {
+  font: inherit;
+  padding: .25rem .45rem;
+  border: 1px solid var(--c-border-2);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-text);
+}
 .sweep-cluster {
   display: flex;
   align-items: center;

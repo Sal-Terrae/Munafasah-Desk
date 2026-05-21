@@ -512,6 +512,58 @@ export interface IngestionJob {
   updatedAt: string;
 }
 
+// ---------- DPO training register ----------
+
+export type TrainingExpiryStatus =
+  | 'no-expiry'
+  | 'active'
+  | 'expiring'
+  | 'expired';
+
+export interface DpoTrainingRecord {
+  id: string;
+  organizationId: string;
+  userId: string | null;
+  subjectName: string;
+  subjectEmail: string;
+  topic: string;
+  provider: string | null;
+  completedAt: string;
+  validUntil: string | null;
+  evidenceRef: string | null;
+  evidenceDocumentId: string | null;
+  notes: string | null;
+  recordedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  // Server-enriched
+  expiryStatus: TrainingExpiryStatus;
+  daysUntilExpiry: number | null;
+}
+
+export interface CreateDpoTrainingInput {
+  userId?: string | null;
+  subjectName: string;
+  subjectEmail: string;
+  topic: string;
+  provider?: string | null;
+  completedAt: string; // ISO
+  validUntil?: string | null; // ISO or null
+  evidenceRef?: string | null;
+  evidenceDocumentId?: string | null;
+  notes?: string | null;
+}
+
+export type UpdateDpoTrainingInput = Partial<CreateDpoTrainingInput>;
+
+export interface DpoTrainingSummary {
+  total: number;
+  active: number;
+  expiring: number;
+  expired: number;
+  noExpiry: number;
+}
+
 // ---------- Admin fetchers ----------
 
 export const adminApi = {
@@ -611,4 +663,32 @@ export const adminApi = {
     payload: Record<string, unknown>;
   }) =>
     apiFetch<IngestionJob>('/ingestions', { method: 'POST', body: input }),
+
+  // DPO training register
+  listTrainingRecords: (
+    status?: TrainingExpiryStatus | 'all',
+  ): Promise<DpoTrainingRecord[]> => {
+    const qs = status && status !== 'all' ? `?status=${status}` : '';
+    return apiFetch<DpoTrainingRecord[]>(`/training-records${qs}`);
+  },
+  trainingRecordsSummary: () =>
+    apiFetch<DpoTrainingSummary>('/training-records/summary'),
+  getTrainingRecord: (id: string) =>
+    apiFetch<DpoTrainingRecord>(
+      `/training-records/${encodeURIComponent(id)}`,
+    ),
+  createTrainingRecord: (input: CreateDpoTrainingInput) =>
+    apiFetch<DpoTrainingRecord>('/training-records', {
+      method: 'POST',
+      body: input,
+    }),
+  updateTrainingRecord: (id: string, input: UpdateDpoTrainingInput) =>
+    apiFetch<DpoTrainingRecord>(
+      `/training-records/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: input },
+    ),
+  removeTrainingRecord: (id: string) =>
+    apiFetch<void>(`/training-records/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
 };
