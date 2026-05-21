@@ -43,6 +43,12 @@ export interface UpdateTenderData {
   title?: string;
   status?: string;
   source?: string;
+  sector?: string | null;
+  sectorCategory?: string | null;
+  sectorConfidence?: number | null;
+  sectorClassifiedAt?: Date | null;
+  sectorInputHash?: string | null;
+  sectorModel?: string | null;
 }
 
 export interface CreateClientDocumentData {

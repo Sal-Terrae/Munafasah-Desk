@@ -84,21 +84,28 @@ model ClientCompany {
 }
 
 model Tender {
-  id              String              @id @default(uuid())
-  title           String
-  organizationId  String
-  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  clientCompanyId String
-  clientCompany   ClientCompany       @relation(fields: [clientCompanyId], references: [id], onDelete: Cascade)
-  source          String              @default("manual")
-  status          String              @default("intake")
-  matrices        ComplianceMatrix[]
-  requirements    TenderRequirement[]
-  tasks           Task[]
-  submissionPacks SubmissionPack[]
-  accesses        TenderAccess[]
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id                 String              @id @default(uuid())
+  title              String
+  organizationId     String
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clientCompanyId    String
+  clientCompany      ClientCompany       @relation(fields: [clientCompanyId], references: [id], onDelete: Cascade)
+  source             String              @default("manual")
+  status             String              @default("intake")
+  // P22 — sector classifier (LLM-driven). Nullable until classified.
+  sector             String?
+  sectorCategory     String?
+  sectorConfidence   Decimal?            @db.Decimal(4, 3)
+  sectorClassifiedAt DateTime?
+  sectorInputHash    String?             // sha256 of classified input
+  sectorModel        String?             // LLM model used
+  matrices           ComplianceMatrix[]
+  requirements       TenderRequirement[]
+  tasks              Task[]
+  submissionPacks    SubmissionPack[]
+  accesses           TenderAccess[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 }
 
 // Re-parented to ClientCompany (PRD ERD §3 fix). Documents are reusable

@@ -21,6 +21,7 @@ import { ObjectStorageModule } from './providers/object-storage/object-storage.m
 import { NotificationModule } from './providers/notifications/notification.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { BillingModule } from './billing/billing.module';
+import { SectorModule } from './sector/sector.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { BillingModule } from './billing/billing.module';
     NotificationModule,
     WebhooksModule,
     BillingModule,
+    SectorModule,
   ],
   providers: [
     {

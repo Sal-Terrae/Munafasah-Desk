@@ -50,4 +50,28 @@ export class TenderService {
   remove(id: string, organizationId: string): Promise<boolean> {
     return this.repo.delete(id, organizationId);
   }
+
+  /** Sector classifier write-path. Sets all five sector columns +
+   *  sectorClassifiedAt in a single update. Called by
+   *  SectorClassifierService (LLM result) and human-override. */
+  persistSectorClassification(
+    id: string,
+    organizationId: string,
+    data: {
+      sector: string;
+      sectorCategory?: string | null;
+      sectorConfidence?: number | null;
+      sectorInputHash?: string | null;
+      sectorModel?: string | null;
+    },
+  ): Promise<Tender> {
+    return this.repo.update(id, organizationId, {
+      sector: data.sector,
+      sectorCategory: data.sectorCategory ?? null,
+      sectorConfidence: data.sectorConfidence ?? null,
+      sectorClassifiedAt: new Date(),
+      sectorInputHash: data.sectorInputHash ?? null,
+      sectorModel: data.sectorModel ?? null,
+    });
+  }
 }
