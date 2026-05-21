@@ -1,4 +1,4 @@
-# BidReady KSA
+# Munafasah-Desk
 
 **Arabic-first, sector-configurable bid-readiness workspace** for Saudi
 government and institutional tenders. Turns a tender from "found" into
