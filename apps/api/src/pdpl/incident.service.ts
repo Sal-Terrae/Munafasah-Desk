@@ -40,6 +40,10 @@ export class IncidentService {
     return inc;
   }
 
+  find(id: string): Incident | undefined {
+    return this.events.get(id);
+  }
+
   report(id: string, reportedAt: Date = new Date()): Incident {
     const inc = this.events.get(id);
     if (!inc) throw new Error('incident not found');

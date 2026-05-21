@@ -22,10 +22,13 @@ import { DpoContactService } from './dpo-contact.service';
 import { DpoContactController } from './dpo-contact.controller';
 import { DpoTrainingService } from './dpo-training.service';
 import { DpoTrainingController } from './dpo-training.controller';
+import { AuthorityNotificationService } from './authority-notification.service';
+import { AuthorityNotificationController } from './authority-notification.controller';
+import { NotificationModule } from '../providers/notifications/notification.module';
 import { ResidencyGate } from './residency-gate';
 
 @Module({
-  imports: [AuthModule, AuditModule, RepositoriesModule],
+  imports: [AuthModule, AuditModule, RepositoriesModule, NotificationModule],
   providers: [
     RetentionService,
     IncidentService,
@@ -37,6 +40,7 @@ import { ResidencyGate } from './residency-gate';
     SchedulerOidcGuard,
     DpoContactService,
     DpoTrainingService,
+    AuthorityNotificationService,
     ResidencyGate,
   ],
   controllers: [
@@ -48,6 +52,7 @@ import { ResidencyGate } from './residency-gate';
     RetentionScheduledController,
     DpoContactController,
     DpoTrainingController,
+    AuthorityNotificationController,
   ],
   exports: [
     RetentionService,
@@ -58,6 +63,7 @@ import { ResidencyGate } from './residency-gate';
     RetentionActionPersistenceService,
     DpoContactService,
     DpoTrainingService,
+    AuthorityNotificationService,
     ResidencyGate,
   ],
 })
