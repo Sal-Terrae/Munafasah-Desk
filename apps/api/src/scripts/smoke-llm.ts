@@ -34,7 +34,10 @@ async function main(): Promise<void> {
             'Return { "pong": true, "greeting": "<short greeting in Arabic>" }',
         }),
         temperature: 0.1,
-        maxTokens: 60,
+        // DeepSeek's v4-flash burns ~30 tokens on reasoning_content
+        // before producing content; 300 keeps the smoke cheap while
+        // leaving plenty of headroom over the actual JSON output.
+        maxTokens: 300,
       },
       schema,
     );

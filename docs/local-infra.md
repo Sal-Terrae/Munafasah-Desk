@@ -72,6 +72,15 @@ malformed JSON. In mock mode (default) the script exits 0 with an
 explanatory note — useful for confirming the dev install works
 without a DeepSeek key.
 
+**DeepSeek reasoning-tokens note.** `deepseek-v4-flash` is a
+reasoning model: each call spends ~30–60 tokens on `reasoning_content`
+(chain-of-thought) before producing the actual `content`. Always set
+`max_tokens` to leave headroom — the smoke script uses 300, the
+sector classifier uses 200 (plenty for `{sector, category,
+confidence}`), the ingestion enrichment uses 8000. A too-tight budget
+shows up as a JSON parse failure because DeepSeek returns
+`finish_reason="length"` with an empty `content`.
+
 ## Ingestion portal (server-to-server)
 
 The `POST /ingestion/tenders` endpoint accepts enriched tenders
