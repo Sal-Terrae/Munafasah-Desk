@@ -31,6 +31,7 @@ class IngestionRequirementBody {
   @IsString() @MaxLength(4000) text!: string;
   @IsOptional() @IsBoolean() mandatory?: boolean | null;
   @IsOptional() @IsNumber() @Min(0) @Max(1) confidence?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(10000) source_page?: number | null;
   @IsOptional() @IsString() @MaxLength(2000) source_text?: string | null;
 }
 

@@ -7,5 +7,6 @@ import { ClientCompanyController } from './client-company.controller';
   imports: [RepositoriesModule],
   providers: [ClientCompanyService],
   controllers: [ClientCompanyController],
+  exports: [ClientCompanyService],
 })
 export class ClientCompanyModule {}

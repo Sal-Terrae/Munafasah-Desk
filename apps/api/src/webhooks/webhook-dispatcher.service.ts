@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { WebhookDelivery } from '@prisma/client';
 import { IWebhookSubscriptionRepository } from '../repositories/interfaces/webhook-subscription.repository.interface';
 import { IWebhookDeliveryRepository } from '../repositories/interfaces/webhook-delivery.repository.interface';
@@ -49,7 +49,7 @@ export class WebhookDispatcher {
     private readonly subs: IWebhookSubscriptionRepository,
     @Inject(WEBHOOK_DELIVERY_REPOSITORY)
     private readonly deliveries: IWebhookDeliveryRepository,
-    deps: WebhookDispatcherDeps = {},
+    @Optional() deps: WebhookDispatcherDeps = {},
   ) {
     this.doFetch = deps.fetchImpl ?? fetch;
     this.maxAttempts = deps.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
