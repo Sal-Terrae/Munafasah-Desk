@@ -19,6 +19,8 @@ import { DpoContactPrismaRepository } from './prisma/dpo-contact.prisma.reposito
 import { LlmUsageLogPrismaRepository } from './prisma/llm-usage-log.prisma.repository';
 import { DpoTrainingRecordPrismaRepository } from './prisma/dpo-training-record.prisma.repository';
 import { InboundEmailPrismaRepository } from './prisma/inbound-email.prisma.repository';
+import { WebhookSubscriptionPrismaRepository } from './prisma/webhook-subscription.prisma.repository';
+import { WebhookDeliveryPrismaRepository } from './prisma/webhook-delivery.prisma.repository';
 import {
   AUDIT_EVENT_REPOSITORY,
   CLIENT_COMPANY_REPOSITORY,
@@ -30,6 +32,8 @@ import {
   DPO_CONTACT_REPOSITORY,
   DPO_TRAINING_RECORD_REPOSITORY,
   INBOUND_EMAIL_REPOSITORY,
+  WEBHOOK_SUBSCRIPTION_REPOSITORY,
+  WEBHOOK_DELIVERY_REPOSITORY,
   EVIDENCE_LINK_REPOSITORY,
   INGESTION_JOB_REPOSITORY,
   LLM_USAGE_LOG_REPOSITORY,
@@ -64,6 +68,14 @@ const TOKEN_BINDINGS = [
     useClass: DpoTrainingRecordPrismaRepository,
   },
   { provide: INBOUND_EMAIL_REPOSITORY, useClass: InboundEmailPrismaRepository },
+  {
+    provide: WEBHOOK_SUBSCRIPTION_REPOSITORY,
+    useClass: WebhookSubscriptionPrismaRepository,
+  },
+  {
+    provide: WEBHOOK_DELIVERY_REPOSITORY,
+    useClass: WebhookDeliveryPrismaRepository,
+  },
 ];
 
 const TOKENS = TOKEN_BINDINGS.map((b) => b.provide);

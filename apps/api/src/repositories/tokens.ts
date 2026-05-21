@@ -38,3 +38,9 @@ export const DPO_TRAINING_RECORD_REPOSITORY = Symbol(
   'IDpoTrainingRecordRepository',
 );
 export const INBOUND_EMAIL_REPOSITORY = Symbol('IInboundEmailRepository');
+export const WEBHOOK_SUBSCRIPTION_REPOSITORY = Symbol(
+  'IWebhookSubscriptionRepository',
+);
+export const WEBHOOK_DELIVERY_REPOSITORY = Symbol(
+  'IWebhookDeliveryRepository',
+);

@@ -19,6 +19,7 @@ import { LlmModule } from './providers/llm/llm.module';
 import { QueueModule } from './providers/queue/queue.module';
 import { ObjectStorageModule } from './providers/object-storage/object-storage.module';
 import { NotificationModule } from './providers/notifications/notification.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { NotificationModule } from './providers/notifications/notification.modul
     QueueModule,
     ObjectStorageModule,
     NotificationModule,
+    WebhooksModule,
   ],
   providers: [
     {

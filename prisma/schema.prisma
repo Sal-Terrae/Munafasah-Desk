@@ -50,6 +50,9 @@ model Organization {
   trainingRecords     DpoTrainingRecord[]
   // P18 — inbound email transport
   inboundEmails       InboundEmail[]
+  // P19 — outbound webhooks
+  webhookSubscriptions WebhookSubscription[]
+  webhookDeliveries    WebhookDelivery[]
 }
 
 model User {
@@ -489,4 +492,51 @@ model InboundEmail {
   @@index([organizationId])
   @@index([status])
   @@index([receivedAt])
+}
+
+// P19 — Outbound webhook subscriptions. One row per (orgId, url)
+// pair. `secret` is the HMAC signing key; it is NEVER returned in
+// API responses after the create/rotate call.
+model WebhookSubscription {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  url            String
+  secret         String       // raw HMAC key; never returned post-create
+  eventTypes     String[]     // ['ticket.created', 'document.expired', ...]
+  active         Boolean      @default(true)
+  description    String?
+  createdBy      String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deliveries     WebhookDelivery[]
+
+  @@index([organizationId])
+  @@index([organizationId, active])
+}
+
+// One row per dispatch attempt. status='pending' | 'delivered' |
+// 'failed'. attempts increments on retry; lastError captures the
+// most recent failure for ops triage.
+model WebhookDelivery {
+  id             String              @id @default(uuid())
+  subscriptionId String
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  eventType      String
+  payload        Json
+  status         String              @default("pending")
+  attempts       Int                 @default(0)
+  lastError      String?
+  responseStatus Int?
+  lastTriedAt    DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([createdAt])
 }
