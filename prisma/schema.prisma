@@ -48,6 +48,8 @@ model Organization {
   llmUsageLogs        LlmUsageLog[]
   // P15 — DPO training register
   trainingRecords     DpoTrainingRecord[]
+  // P18 — inbound email transport
+  inboundEmails       InboundEmail[]
 }
 
 model User {
@@ -460,4 +462,31 @@ model DpoTrainingRecord {
   @@index([organizationId])
   @@index([organizationId, validUntil])
   @@index([organizationId, subjectEmail])
+}
+
+// P18 — Inbound-email transport. One row per webhook delivery from
+// an inbound provider (Mailgun/Postmark/etc). messageId is globally
+// unique for idempotency — re-delivery of the same Message-Id is a
+// no-op. organizationId is nullable because we may receive mail
+// that's mis-routed (status='rejected') before we know the tenant.
+model InboundEmail {
+  id               String        @id @default(uuid())
+  messageId        String        @unique
+  organizationId   String?
+  organization     Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  fromAddress      String
+  toAddress        String
+  subject          String?
+  body             String        // plain-text body, truncated by service
+  status           String        // 'routed' | 'unrouted' | 'rejected'
+  routedAction     String?       // e.g. 'data_subject.access.requested'
+  routedEntityType String?
+  routedEntityId   String?
+  rejectionReason  String?
+  receivedAt       DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([receivedAt])
 }

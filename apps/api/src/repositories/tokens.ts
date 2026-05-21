@@ -37,3 +37,4 @@ export const LLM_USAGE_LOG_REPOSITORY = Symbol('ILlmUsageLogRepository');
 export const DPO_TRAINING_RECORD_REPOSITORY = Symbol(
   'IDpoTrainingRecordRepository',
 );
+export const INBOUND_EMAIL_REPOSITORY = Symbol('IInboundEmailRepository');
