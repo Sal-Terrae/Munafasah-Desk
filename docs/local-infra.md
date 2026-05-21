@@ -60,6 +60,31 @@ for UTC midnight rollover.
 computed from a per-provider/per-model rate-card sourced from env; for
 DeepSeek the defaults track published pricing (USD per 1k tokens).
 
+Verify the wiring before kicking off real runs (sector classification,
+ingestion, etc.):
+
+```bash
+cd apps/api && npm run smoke:llm
+```
+
+Exit `0` = wiring OK, `1` = network failure, `2` = model returned
+malformed JSON. In mock mode (default) the script exits 0 with an
+explanatory note — useful for confirming the dev install works
+without a DeepSeek key.
+
+## Ingestion portal (server-to-server)
+
+The `POST /ingestion/tenders` endpoint accepts enriched tenders
+pushed from the [bidready-tender-ingestion](https://github.com/Sal-Terrae/bidready-tender-ingestion)
+sibling service. Auth: a single bearer token in `INGESTION_API_KEY`;
+the resulting Tender lands in the org identified by
+`INGESTION_TARGET_ORG_ID`. Both env vars MUST be set in production —
+missing config locks the endpoint with a 401.
+
+The ingestion service should mirror its `ADMIN_PORTAL_API_KEY` to
+match. (Per-org keys are a follow-up when a second customer needs
+their own ingestion target.)
+
 ## Cloud migration plan
 
 Each box flips by env, not by code:

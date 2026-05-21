@@ -22,6 +22,7 @@ import { NotificationModule } from './providers/notifications/notification.modul
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { BillingModule } from './billing/billing.module';
 import { SectorModule } from './sector/sector.module';
+import { IngestionPortalModule } from './ingestion-portal/ingestion-portal.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { SectorModule } from './sector/sector.module';
     WebhooksModule,
     BillingModule,
     SectorModule,
+    IngestionPortalModule,
   ],
   providers: [
     {
