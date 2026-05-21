@@ -46,3 +46,6 @@ export const WEBHOOK_DELIVERY_REPOSITORY = Symbol(
 );
 export const SUBSCRIPTION_REPOSITORY = Symbol('ISubscriptionRepository');
 export const USAGE_COUNTER_REPOSITORY = Symbol('IUsageCounterRepository');
+export const INGESTION_API_KEY_REPOSITORY = Symbol(
+  'IIngestionApiKeyRepository',
+);

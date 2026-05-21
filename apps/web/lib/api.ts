@@ -32,6 +32,12 @@ export interface Tender {
   source: string;
   clientCompanyId: string;
   organizationId: string;
+  // P22 — sector classifier output (nullable until classified).
+  sector?: string | null;
+  sectorCategory?: string | null;
+  sectorConfidence?: string | number | null;
+  sectorModel?: string | null;
+  sectorClassifiedAt?: string | null;
 }
 
 export interface DocumentSummary {
@@ -300,6 +306,21 @@ export const tenderApi = {
       method: 'DELETE',
     }),
 
+  reclassifySector: (id: string, forceRerun = true) =>
+    apiFetch<{
+      tender: Tender;
+      classification: {
+        sector: string;
+        category: string;
+        confidence: number;
+      };
+      cached: boolean;
+      model: string;
+    }>(`/tenders/${encodeURIComponent(id)}/sector/classify`, {
+      method: 'POST',
+      body: { forceRerun },
+    }),
+
   listRequirements: (tenderId: string) =>
     apiFetch<TenderRequirement[]>(
       `/tenders/${encodeURIComponent(tenderId)}/requirements`,
@@ -512,6 +533,24 @@ export interface IngestionJob {
   updatedAt: string;
 }
 
+// ---------- Tender ingestion service proxy ----------
+
+export interface IngestionRunSummary {
+  id: string;
+  sourceId: string;
+  status: 'running' | 'completed' | 'failed' | string;
+  startedAt: string;
+  completedAt: string | null;
+  errorMessage: string | null;
+  discoveredCount: number;
+  capturedCount: number;
+  normalisedCount: number;
+  enrichedCount: number;
+  curationReadyCount: number;
+  rejectedCount: number;
+  source?: { code: string; name: string };
+}
+
 // ---------- DPO training register ----------
 
 export type TrainingExpiryStatus =
@@ -663,6 +702,28 @@ export const adminApi = {
     payload: Record<string, unknown>;
   }) =>
     apiFetch<IngestionJob>('/ingestions', { method: 'POST', body: input }),
+
+  // External tender-ingestion service proxy (server-to-server)
+  listIngestionRuns: (limit = 20) =>
+    apiFetch<IngestionRunSummary[]>(
+      `/admin/ingestion/runs?limit=${limit}`,
+    ),
+  triggerIngestionRun: (input: {
+    sourceCode: string;
+    maxPages?: number;
+    maxItems?: number;
+    syncToAdmin?: boolean;
+  }) =>
+    apiFetch<{
+      sourceCode: string;
+      runId: string;
+      discovered: number;
+      captured: number;
+      normalised: number;
+      enriched: number;
+      curationReady: number;
+      rejected: number;
+    }>('/admin/ingestion/runs', { method: 'POST', body: input }),
 
   // DPO training register
   listTrainingRecords: (

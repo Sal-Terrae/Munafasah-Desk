@@ -1,13 +1,18 @@
 import { UnauthorizedException, ExecutionContext } from '@nestjs/common';
 import { IngestionTokenGuard } from './ingestion-token.guard';
+import { IngestionApiKeyService } from './ingestion-api-key.service';
+import { FakeIngestionApiKeyRepository } from '../repositories/fake/fake-ingestion-api-key.repository';
 
 function mockExec(headers: Record<string, string>): {
   ctx: ExecutionContext;
-  req: { headers: Record<string, string>; ingestion?: { organizationId: string } };
+  req: {
+    headers: Record<string, string>;
+    ingestion?: { organizationId: string; keyId?: string };
+  };
 } {
   const req = { headers } as {
     headers: Record<string, string>;
-    ingestion?: { organizationId: string };
+    ingestion?: { organizationId: string; keyId?: string };
   };
   const ctx = {
     switchToHttp: () => ({
@@ -20,6 +25,15 @@ function mockExec(headers: Record<string, string>): {
 describe('IngestionTokenGuard', () => {
   const prevKey = process.env.INGESTION_API_KEY;
   const prevOrg = process.env.INGESTION_TARGET_ORG_ID;
+  let repo: FakeIngestionApiKeyRepository;
+  let keys: IngestionApiKeyService;
+  let guard: IngestionTokenGuard;
+
+  beforeEach(() => {
+    repo = new FakeIngestionApiKeyRepository();
+    keys = new IngestionApiKeyService(repo);
+    guard = new IngestionTokenGuard(keys);
+  });
 
   afterEach(() => {
     if (prevKey === undefined) delete process.env.INGESTION_API_KEY;
@@ -28,37 +42,72 @@ describe('IngestionTokenGuard', () => {
     else process.env.INGESTION_TARGET_ORG_ID = prevOrg;
   });
 
-  it('rejects when neither env is set', () => {
+  it('rejects when authorization header is missing', async () => {
+    const { ctx } = mockExec({});
+    await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('rejects when no env fallback + no DB key matches', async () => {
     delete process.env.INGESTION_API_KEY;
     delete process.env.INGESTION_TARGET_ORG_ID;
-    const g = new IngestionTokenGuard();
-    const { ctx } = mockExec({ authorization: 'Bearer x' });
-    expect(() => g.canActivate(ctx)).toThrow(UnauthorizedException);
+    const { ctx } = mockExec({ authorization: 'Bearer no-match-anywhere' });
+    await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 
-  it('rejects when bearer token does not match', () => {
+  it('accepts the env-fallback bearer + sets organizationId from env', async () => {
     process.env.INGESTION_API_KEY = 'expected';
-    process.env.INGESTION_TARGET_ORG_ID = 'org-1';
-    const g = new IngestionTokenGuard();
-    const { ctx } = mockExec({ authorization: 'Bearer not-the-token' });
-    expect(() => g.canActivate(ctx)).toThrow(UnauthorizedException);
-  });
-
-  it('rejects when authorization header is missing', () => {
-    process.env.INGESTION_API_KEY = 'expected';
-    process.env.INGESTION_TARGET_ORG_ID = 'org-1';
-    const g = new IngestionTokenGuard();
-    const { ctx } = mockExec({});
-    expect(() => g.canActivate(ctx)).toThrow(UnauthorizedException);
-  });
-
-  it('attaches ingestion.organizationId on success', () => {
-    process.env.INGESTION_API_KEY = 'expected';
-    process.env.INGESTION_TARGET_ORG_ID = 'org-target';
-    const g = new IngestionTokenGuard();
+    process.env.INGESTION_TARGET_ORG_ID = 'org-env';
     const { ctx, req } = mockExec({ authorization: 'Bearer expected' });
-    expect(g.canActivate(ctx)).toBe(true);
-    expect(req.ingestion?.organizationId).toBe('org-target');
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(req.ingestion?.organizationId).toBe('org-env');
+    // No DB key was used; keyId should be undefined.
+    expect(req.ingestion?.keyId).toBeUndefined();
+  });
+
+  it('rejects when env bearer mismatches AND no DB key matches', async () => {
+    process.env.INGESTION_API_KEY = 'expected';
+    process.env.INGESTION_TARGET_ORG_ID = 'org-env';
+    const { ctx } = mockExec({ authorization: 'Bearer not-the-token' });
+    await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('accepts a DB-minted key + sets organizationId + keyId from the row', async () => {
+    const minted = await keys.mint('org-db', 'admin-1', 'etimad-prod');
+    const { ctx, req } = mockExec({
+      authorization: `Bearer ${minted.rawKey}`,
+    });
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(req.ingestion?.organizationId).toBe('org-db');
+    expect(req.ingestion?.keyId).toBe(minted.key.id);
+  });
+
+  it('rejects a revoked DB key', async () => {
+    const minted = await keys.mint('org-db', 'admin-1', 'etimad-prod');
+    await keys.revoke(minted.key.id, 'org-db');
+    const { ctx } = mockExec({
+      authorization: `Bearer ${minted.rawKey}`,
+    });
+    await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it('prefers DB key over env fallback when both could match', async () => {
+    process.env.INGESTION_API_KEY = 'env-fallback';
+    process.env.INGESTION_TARGET_ORG_ID = 'org-env';
+    const minted = await keys.mint('org-db', 'admin-1', 'etimad-prod');
+    const { ctx, req } = mockExec({
+      authorization: `Bearer ${minted.rawKey}`,
+    });
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    expect(req.ingestion?.organizationId).toBe('org-db');
+    expect(req.ingestion?.keyId).toBe(minted.key.id);
   });
 
   describe('constantTimeEqual', () => {

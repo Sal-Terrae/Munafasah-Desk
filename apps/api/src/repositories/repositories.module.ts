@@ -23,6 +23,7 @@ import { WebhookSubscriptionPrismaRepository } from './prisma/webhook-subscripti
 import { WebhookDeliveryPrismaRepository } from './prisma/webhook-delivery.prisma.repository';
 import { SubscriptionPrismaRepository } from './prisma/subscription.prisma.repository';
 import { UsageCounterPrismaRepository } from './prisma/usage-counter.prisma.repository';
+import { IngestionApiKeyPrismaRepository } from './prisma/ingestion-api-key.prisma.repository';
 import {
   AUDIT_EVENT_REPOSITORY,
   CLIENT_COMPANY_REPOSITORY,
@@ -38,6 +39,7 @@ import {
   WEBHOOK_DELIVERY_REPOSITORY,
   SUBSCRIPTION_REPOSITORY,
   USAGE_COUNTER_REPOSITORY,
+  INGESTION_API_KEY_REPOSITORY,
   EVIDENCE_LINK_REPOSITORY,
   INGESTION_JOB_REPOSITORY,
   LLM_USAGE_LOG_REPOSITORY,
@@ -82,6 +84,10 @@ const TOKEN_BINDINGS = [
   },
   { provide: SUBSCRIPTION_REPOSITORY, useClass: SubscriptionPrismaRepository },
   { provide: USAGE_COUNTER_REPOSITORY, useClass: UsageCounterPrismaRepository },
+  {
+    provide: INGESTION_API_KEY_REPOSITORY,
+    useClass: IngestionApiKeyPrismaRepository,
+  },
 ];
 
 const TOKENS = TOKEN_BINDINGS.map((b) => b.provide);

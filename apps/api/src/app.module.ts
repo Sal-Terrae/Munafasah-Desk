@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
@@ -23,9 +24,20 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { BillingModule } from './billing/billing.module';
 import { SectorModule } from './sector/sector.module';
 import { IngestionPortalModule } from './ingestion-portal/ingestion-portal.module';
+import { IngestionProxyModule } from './ingestion-proxy/ingestion-proxy.module';
 
 @Module({
   imports: [
+    // Auto-load .env from the repo root. Global so every module sees
+    // the values via process.env without re-importing. ignoreEnvFile
+    // is false locally; in container deploys NODE_ENV=production +
+    // env vars set directly on the runtime — ConfigModule short-
+    // circuits the file read when none of the listed paths exist.
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['../../.env', '.env'],
+      cache: true,
+    }),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
@@ -55,6 +67,7 @@ import { IngestionPortalModule } from './ingestion-portal/ingestion-portal.modul
     BillingModule,
     SectorModule,
     IngestionPortalModule,
+    IngestionProxyModule,
   ],
   providers: [
     {

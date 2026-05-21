@@ -106,8 +106,15 @@ export class SectorClassifierService {
         {
           systemPrompt: SYSTEM_PROMPT,
           userPrompt,
+          // Sector classification is a tiny output ({sector, category,
+          // confidence}). The cheap flash tier handles it fine. Env-
+          // overridable for ops who want to pin a specific model.
+          model: process.env.DEEPSEEK_CLASSIFY_MODEL,
           temperature: 0.1,
-          maxTokens: 200,
+          // Reasoning models (deepseek-v4-flash) burn ~30-50 tokens on
+          // reasoning_content before content; 400 leaves comfortable
+          // headroom over the actual JSON.
+          maxTokens: 400,
         },
         responseSchema,
       );

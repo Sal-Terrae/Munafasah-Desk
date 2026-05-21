@@ -277,6 +277,51 @@ export const strings = {
     ar: 'تأكيد حذف سجل التدريب؟',
     en: 'Delete this training record?',
   },
+  // ----- Sector classifier UI -----
+  sectorReclassify: {
+    ar: 'إعادة تصنيف القطاع (الذكاء الاصطناعي)',
+    en: 'Re-classify sector (LLM)',
+  },
+  sectorReclassifyRunning: { ar: 'جاري التصنيف…', en: 'Classifying…' },
+  sectorReclassifyDone: {
+    ar: 'تم التصنيف:',
+    en: 'Classified as:',
+  },
+  sectorReclassifyFailed: {
+    ar: 'تعذّر إعادة التصنيف',
+    en: 'Re-classify failed',
+  },
+  // ----- Tender ingestion service -----
+  adminCardIngestionRuns: {
+    ar: 'تشغيلات مُجمِّع العطاءات',
+    en: 'Ingestion runs',
+  },
+  adminCardIngestionRunsDesc: {
+    ar: 'مراقبة وتشغيل تجميع العطاءات من المصادر الرسمية.',
+    en: 'Monitor + trigger external-source tender ingestion runs.',
+  },
+  ingestionRunsTitle: { ar: 'تشغيلات المُجمِّع', en: 'Ingestion runs' },
+  ingestionRunsLead: {
+    ar: 'يقوم خدمة جمع العطاءات بسحب البيانات وإثرائها ثم إرسالها إلى المنصة.',
+    en: 'The ingestion service scrapes sources, LLM-enriches, then syncs curation-ready tenders here.',
+  },
+  ingestionTrigger: { ar: 'تشغيل جديد', en: 'Trigger run' },
+  ingestionSource: { ar: 'المصدر', en: 'Source' },
+  ingestionStarted: { ar: 'بدأ في', en: 'Started' },
+  ingestionStatus: { ar: 'الحالة', en: 'Status' },
+  ingestionCounters: { ar: 'العدّادات', en: 'Counters' },
+  ingestionMaxPages: { ar: 'حد الصفحات', en: 'Max pages' },
+  ingestionMaxItems: { ar: 'حد العناصر', en: 'Max items' },
+  ingestionSyncToAdmin: { ar: 'مزامنة فورية', en: 'Sync now' },
+  ingestionNoRuns: { ar: 'لا توجد تشغيلات بعد.', en: 'No runs yet.' },
+  ingestionTriggerSuccess: {
+    ar: 'تم بدء التشغيل بنجاح',
+    en: 'Run triggered successfully',
+  },
+  ingestionTriggerFailed: {
+    ar: 'تعذّر بدء التشغيل',
+    en: 'Trigger failed',
+  },
   auditTitle: { ar: 'سجل التدقيق', en: 'Audit log' },
   auditAction: { ar: 'الإجراء', en: 'Action' },
   auditEntity: { ar: 'الكيان', en: 'Entity' },

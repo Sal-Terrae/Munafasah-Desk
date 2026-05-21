@@ -17,6 +17,7 @@ import { TenderStatusControl } from './tender-status-control';
 import { RequirementsSection } from './requirements-section';
 import { MatricesSection } from './matrices-section';
 import { AccessSection } from './access-section';
+import { SectorReclassifyButton } from './sector-reclassify';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,6 +107,19 @@ export default async function TenderWorkspace({
             </span>
             <span className="muted mono">{tender.id.slice(0, 8)}…</span>
           </div>
+          <SectorReclassifyButton
+            tenderId={tender.id}
+            currentSector={tender.sector ?? null}
+            currentCategory={tender.sectorCategory ?? null}
+            currentConfidence={
+              tender.sectorConfidence !== undefined &&
+              tender.sectorConfidence !== null
+                ? Number(tender.sectorConfidence)
+                : null
+            }
+            isOwner={user?.role === 'Owner'}
+            locale={locale}
+          />
         </div>
         <TenderStatusControl tender={tender} locale={locale} />
       </header>

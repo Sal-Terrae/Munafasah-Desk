@@ -56,6 +56,8 @@ model Organization {
   // P21 — billing
   subscription        Subscription?
   usageCounters       UsageCounter[]
+  // P26 — per-org ingestion api keys
+  ingestionApiKeys    IngestionApiKey[]
 }
 
 model User {
@@ -588,4 +590,26 @@ model UsageCounter {
   @@unique([organizationId, date, metric])
   @@index([organizationId, date])
   @@index([metric])
+}
+
+// P26 — Per-org ingestion API keys. Replaces the single env-driven
+// INGESTION_API_KEY with revocable, named, per-tenant credentials.
+// keyHash is bcrypt(raw) so an attacker reading the DB never sees
+// the plaintext; keyPrefix is the first 8 chars of raw (plaintext)
+// so guard lookups can short-circuit on prefix before bcrypt'ing.
+model IngestionApiKey {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String       // human label e.g. "etimad-prod"
+  keyPrefix      String       // first 8 chars of raw (plaintext)
+  keyHash        String       // bcrypt(raw, cost 10)
+  createdBy      String
+  createdAt      DateTime     @default(now())
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+
+  @@unique([keyPrefix])
+  @@index([organizationId])
+  @@index([revokedAt])
 }

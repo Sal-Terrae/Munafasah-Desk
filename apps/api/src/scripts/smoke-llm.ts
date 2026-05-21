@@ -1,4 +1,10 @@
 /* eslint-disable no-console */
+// Load .env from the repo root (../../.env relative to apps/api/) so
+// the operator can `npm run smoke:llm` from apps/api without sourcing.
+import { config } from 'dotenv';
+import { resolve } from 'path';
+config({ path: resolve(process.cwd(), '../../.env') });
+
 import { z } from 'zod';
 import { createLlmProvider } from '../providers/llm/create-llm-provider.factory';
 

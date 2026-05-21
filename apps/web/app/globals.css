@@ -532,6 +532,20 @@ h2 { font-size: 1.05rem; margin: 0 0 var(--s-3); }
   background: var(--c-surface);
   color: var(--c-text);
 }
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-weight: 500;
+}
+.checkbox-row input { width: auto; }
+.sector-reclassify {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+  margin-top: .5rem;
+}
 .sweep-cluster {
   display: flex;
   align-items: center;
