@@ -20,6 +20,7 @@ import { QueueModule } from './providers/queue/queue.module';
 import { ObjectStorageModule } from './providers/object-storage/object-storage.module';
 import { NotificationModule } from './providers/notifications/notification.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     ObjectStorageModule,
     NotificationModule,
     WebhooksModule,
+    BillingModule,
   ],
   providers: [
     {

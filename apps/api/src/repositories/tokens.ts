@@ -44,3 +44,5 @@ export const WEBHOOK_SUBSCRIPTION_REPOSITORY = Symbol(
 export const WEBHOOK_DELIVERY_REPOSITORY = Symbol(
   'IWebhookDeliveryRepository',
 );
+export const SUBSCRIPTION_REPOSITORY = Symbol('ISubscriptionRepository');
+export const USAGE_COUNTER_REPOSITORY = Symbol('IUsageCounterRepository');
